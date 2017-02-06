@@ -341,21 +341,3 @@ class IntSet(object):
             else:
                 self_block = self_block.next
                 other_block = other_block.next
-
-
-def profile():
-    l1 = random.sample(xrange(50000), 10000)
-    l2 = random.sample(xrange(50000), 10000)
-
-    intset1 = IntSet(l1)
-    intset2 = IntSet(l2)
-
-    s1 = set(l1)
-    s2 = set(l2)
-
-    # for x in range(1000):
-    # intset1 & intset2
-
-
-if __name__ == '__main__':
-    cProfile.run("profile()", sort="cumtime")
