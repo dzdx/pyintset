@@ -8,18 +8,18 @@ import time
 
 
 class IntSetTestCase(unittest.TestCase):
+    def test_iter(self):
+
+        data = random.sample(xrange(10000), 2000)
+        s = IntSet(data)
+        assert list(s) == sorted(data)
+
     def test_add(self):
         l1 = random.sample(xrange(10000), 2000)
         s = IntSet()
         for x in l1:
             s.add(x)
-        assert list(s) == sorted(set(l1))
-
-    def test_add_array(self):
-        l1 = random.sample(xrange(10000), 2000)
-        s = IntSet()
-        s.add_array(l1)
-        assert list(s) == sorted(set(l1))
+        assert list(s) == sorted(l1)
 
     def test_remove(self):
         l1 = random.sample(xrange(10000), 2000)
@@ -32,32 +32,42 @@ class IntSetTestCase(unittest.TestCase):
             s2.remove(x)
         assert list(s1) == sorted(s2)
 
-    def test_has(self):
+    def test_discard(self):
+        l1 = random.sample(xrange(10000), 2000)
+        l2 = random.sample(l1, 300)
+        s1 = IntSet(l1)
+        s2 = set(l1)
+
+        for x in l2:
+            s1.discard(x)
+            s2.discard(x)
+        assert list(s1) == sorted(s2)
+
+    def test_contains(self):
         l1 = random.sample(xrange(10000), 2000)
         l2 = random.sample(l1, 30)
         s = IntSet(l1)
         for x in l2:
-            assert s.has(x) == True
             assert x in s
 
     def test_clear(self):
-        s = IntSet(random.sample(xrange(10000), 2000))
-        s.clear()
-        assert list(s) == []
+         s = IntSet(random.sample(xrange(10000), 2000))
+         s.clear()
+         assert list(s) == []
 
     def test_len(self):
         s = IntSet(range(100))
-        s.add_array(range(100, 200))
-        assert len(s) == 200
+        assert len(s) == 100
 
     def test_min(self):
-        s = IntSet(range(100, 1000))
-
-        assert s.min() == 100
+        l1 = random.sample(xrange(10000), 2000)
+        s = IntSet(l1)
+        assert s.min() == min(l1)
 
     def test_max(self):
-        s = IntSet(range(100, 1000))
-        assert s.max() == 999
+        l1 = random.sample(xrange(10000), 2000)
+        s = IntSet(l1)
+        assert s.max() == max(l1)
 
     def test_and(self):
 
@@ -67,6 +77,7 @@ class IntSetTestCase(unittest.TestCase):
         s1 = IntSet(l1)
         s2 = IntSet(l2)
         assert list(s1 & s2) == sorted(list(set(l1) & set(l2)))
+
 
     def test_or(self):
 
@@ -92,6 +103,65 @@ class IntSetTestCase(unittest.TestCase):
         s1 = IntSet(l1)
         s2 = IntSet(l1)
         assert s1 == s2
+
+    def test_benchmark_and(self):
+        l1 = random.sample(xrange(20000), 2000)
+        l2 = random.sample(xrange(20000), 2000)
+
+        is1 = IntSet(l1)
+        is2 = IntSet(l2)
+
+        s1 = set(l1)
+        s2 = set(l2)
+
+        t1 = time.time()
+        for _ in range(10000):
+            is1&is2
+        t2 = time.time()
+        for _ in range(10000):
+            s1&s2
+        t3 = time.time()
+        print "and", t2-t1, t3-t2
+
+    def test_benchmark_or(self):
+        l1 = random.sample(xrange(20000), 2000)
+        l2 = random.sample(xrange(20000), 2000)
+
+        is1 = IntSet(l1)
+        is2 = IntSet(l2)
+
+        s1 = set(l1)
+        s2 = set(l2)
+
+        t1 = time.time()
+        for _ in range(10000):
+            is1|is2
+        t2 = time.time()
+        for _ in range(10000):
+            s1|s2
+        t3 = time.time()
+        print "or", t2-t1, t3-t2
+
+
+    def test_benchmark_sub(self):
+        l1 = random.sample(xrange(20000), 2000)
+        l2 = random.sample(xrange(20000), 2000)
+
+        is1 = IntSet(l1)
+        is2 = IntSet(l2)
+
+        s1 = set(l1)
+        s2 = set(l2)
+
+        t1 = time.time()
+        for _ in range(10000):
+            is1-is2
+        t2 = time.time()
+        for _ in range(10000):
+            s1-s2
+        t3 = time.time()
+        print "sub", t2-t1, t3-t2
+
 
 
 if __name__ == '__main__':
