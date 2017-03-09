@@ -38,8 +38,8 @@ void intset_clear(IntSet *set);
 
 int intset_len(IntSet *set);
 
-void intset_max(IntSet *set, long *result, int *error);
-void intset_min(IntSet *set, long *result, int *error);
+long intset_max(IntSet *set, int *error);
+long intset_min(IntSet *set, int *error);
 
 IntSet *intset_and(IntSet *set_a, IntSet *set_b);
 IntSet *intset_or(IntSet *set_a, IntSet *set_b);

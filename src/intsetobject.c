@@ -17,15 +17,16 @@ static PyObject * iter_iternext(IterObject *iter_obj){
     if(stopped==1){
         return NULL;
     }else{
-        return PyLong_FromLong(val);
+        return PyInt_FromLong(val);
     }
 }
 
-
 static void iter_dealloc(IterObject *iter_obj){
     free(iter_obj->iter);
-    PyObject_GC_Del(iter_obj);
+    iter_obj->iter= NULL;
+    PyObject_Del(iter_obj);
 }
+
 
 static PyMethodDef iter_methods[] = {
     {NULL}
@@ -36,7 +37,6 @@ static PyTypeObject IterObject_Type ={
     "intset_iterator",                          /* tp_name */
     sizeof(IterObject),                         /* tp_basicsize */
     0,                                          /* tp_itemsize */
-    /* methods */
     (destructor)iter_dealloc,                   /* tp_dealloc */
     0,                                          /* tp_print */
     0,                                          /* tp_getattr */
@@ -49,10 +49,10 @@ static PyTypeObject IterObject_Type ={
     0,                                          /* tp_hash */
     0,                                          /* tp_call */
     0,                                          /* tp_str */
-    PyObject_GenericGetAttr,                    /* tp_getattro */
+    0,                                          /* tp_getattro */
     0,                                          /* tp_setattro */
     0,                                          /* tp_as_buffer */
-    Py_TPFLAGS_DEFAULT|Py_TPFLAGS_HAVE_GC,      /* tp_flags */
+    Py_TPFLAGS_DEFAULT,                         /* tp_flags */
     0,                                          /* tp_doc */
     0,                                          /* tp_traverse */
     0,                                          /* tp_clear */
@@ -62,6 +62,15 @@ static PyTypeObject IterObject_Type ={
     (iternextfunc)iter_iternext,                /* tp_iternext */
     iter_methods,                               /* tp_methods */
     0,                                          /* tp_members */
+    0,                                          /* tp_getset */
+    0,                                          /* tp_base */
+    0,                                          /* tp_dict */
+    0,                                          /* tp_descr_get */
+    0,                                          /* tp_descr_set */
+    0,                                          /* tp_dictoffset */
+    0,                                          /* tp_init */
+    0,                                          /* tp_alloc */
+    0,                                          /* tp_new */
 };
 
 
@@ -83,6 +92,8 @@ static void set_dealloc(IntSetObject* set_obj){
     Py_TYPE(set_obj)->tp_free(set_obj);
 };
 
+
+
 static PyObject* make_new_set(PyTypeObject *type, IntSet *intset){
     IntSetObject * set_obj;
     set_obj = (IntSetObject *)type->tp_alloc(type, 0);
@@ -103,7 +114,7 @@ static int intset_update_internal(IntSet * intset, PyObject * iterable){
     if(it == NULL)return -1;
 
     while((key = PyIter_Next(it)) != NULL){
-        long x = PyLong_AsLong(key);
+        long x = PyInt_AsLong(key);
         intset_add(intset, x);
         Py_DECREF(key);
     }
@@ -127,23 +138,50 @@ static int set_init(IntSetObject * set_obj, PyObject *args, PyObject *kwds){
 
 
 static PyObject * set_iter(IntSetObject *set_obj){
-    IterObject * iter_obj = PyObject_GC_New(IterObject, &IterObject_Type);
+    IterObject * iter_obj = PyObject_New(IterObject, &IterObject_Type);
     if(iter_obj == NULL)return NULL;
     iter_obj->iter = intset_iter(set_obj->intset);
-    _PyObject_GC_TRACK(iter_obj);
     return (PyObject *)iter_obj;
 }
 
 
+static PyObject* set_repr(IntSetObject * set_obj){
+  PyObject *keys, *result=NULL, *listrepr;
+    int status = Py_ReprEnter((PyObject*)set_obj);
+
+    if (status != 0) {
+        if (status < 0)
+            return NULL;
+        return PyString_FromFormat("%s(...)", set_obj->ob_type->tp_name);
+    }
+
+    keys = PySequence_List((PyObject *)set_obj);
+    if (keys == NULL)
+        goto done;
+    listrepr = PyObject_Repr(keys);
+    Py_DECREF(keys);
+    if (listrepr == NULL)
+        goto done;
+
+    result = PyString_FromFormat("%s(%s)", set_obj->ob_type->tp_name,
+        PyString_AS_STRING(listrepr));
+    Py_DECREF(listrepr);
+done:
+    Py_ReprLeave((PyObject*)set_obj);
+    return result;
+
+}
+
+
 static PyObject* set_add(IntSetObject *set_obj, PyObject *obj){
-    long x = PyLong_AsLong(obj);
+    long x = PyInt_AsLong(obj);
     intset_add(set_obj->intset, x);
     Py_RETURN_NONE;
 }
 
 static PyObject* set_remove(IntSetObject *set_obj, PyObject *obj){
 
-    long x = PyLong_AsLong(obj);
+    long x = PyInt_AsLong(obj);
     int r = intset_remove(set_obj->intset, x);
     if(r==0){
         PyErr_Format(PyExc_KeyError, "%ld", x);
@@ -155,7 +193,7 @@ static PyObject* set_remove(IntSetObject *set_obj, PyObject *obj){
 
 static PyObject* set_discard(IntSetObject *set_obj, PyObject *obj){
 
-    long x = PyLong_AsLong(obj);
+    long x = PyInt_AsLong(obj);
     intset_remove(set_obj->intset, x);
     Py_RETURN_NONE;
 }
@@ -166,33 +204,31 @@ static Py_ssize_t set_len(PyObject *set_obj){
 }
 
 static int set_contains(IntSetObject *set_obj, PyObject * key){
-    return intset_has(set_obj->intset, PyLong_AsLong(key));
+    return intset_has(set_obj->intset, PyInt_AsLong(key));
 }
 
 
 
 static PyObject * set_max(IntSetObject * set_obj){
-	long result;
 	int error;
-	intset_max(set_obj->intset, &result, &error);
+	long result = intset_max(set_obj->intset, &error);
 	if(error){
 		PyErr_Format(PyExc_ValueError, "intset is empty");
 		PyErr_Occurred();
 		return NULL;
 	}
-	return PyLong_FromLong(result);
+	return PyInt_FromLong(result);
 }
 
 static PyObject * set_min(IntSetObject * set_obj){
-	long result;
 	int error;
-	intset_min(set_obj->intset, &result, &error);
+	long result = intset_min(set_obj->intset, &error);
 	if(error!=0){
 		PyErr_Format(PyExc_ValueError, "intset is empty");
 		PyErr_Occurred();
 		return NULL;
 	}
-	return PyLong_FromLong(result);
+	return PyInt_FromLong(result);
 }
 
 
@@ -378,14 +414,14 @@ static PyTypeObject IntSetObject_Type = {
     0,                         /* tp_getattr */
     0,                         /* tp_setattr */
     0,                         /* tp_compare */
-    0,                         /* tp_repr */
+    (reprfunc)set_repr,                         /* tp_repr */
     &set_as_number,                         /* tp_as_number */
     &set_as_sequence,           /* tp_as_sequence */
     0,                         /* tp_as_mapping */
-    PyObject_HashNotImplemented,                         /* tp_hash */
+    PyObject_HashNotImplemented,  /* tp_hash */
     0,                         /* tp_call */
     0,                         /* tp_str */
-    PyObject_GenericGetAttr,                         /* tp_getattro */
+    PyObject_GenericGetAttr,   /* tp_getattro */
     0,                         /* tp_setattro */
     0,                         /* tp_as_buffer */
     Py_TPFLAGS_DEFAULT,        /* tp_flags */

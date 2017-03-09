@@ -12,14 +12,17 @@ class IntSetTestCase(unittest.TestCase):
     def test_iter(self):
         data = random.sample(xrange(10000), 2000)
         s = IntSet(data)
-        self.assertListEqual(list(s), sorted(data))
+        self.assertTrue(list(s)==sorted(data))
+
+        s1 = iter(s)
+        s2 = iter(s)
 
     def test_add(self):
         l1 = random.sample(xrange(10000), 2000)
         s = IntSet()
         for x in l1:
             s.add(x)
-        self.assertListEqual(list(s), sorted(l1))
+        self.assertTrue(list(s) == sorted(l1))
 
     def test_contains(self):
         l1 = random.sample(xrange(10000), 2000)
@@ -31,7 +34,7 @@ class IntSetTestCase(unittest.TestCase):
     def test_clear(self):
          s = IntSet(random.sample(xrange(10000), 2000))
          s.clear()
-         self.assertListEqual(list(s), [])
+         self.assertTrue(list(s) == [])
 
     def test_len(self):
         s = IntSet(random.sample(xrange(10000), 2000))
@@ -54,7 +57,7 @@ class IntSetTestCase(unittest.TestCase):
 
         s1 = IntSet(l1)
         s2 = IntSet(l2)
-        self.assertListEqual(list(s1 & s2), sorted(list(set(l1) & set(l2))))
+        self.assertTrue(list(s1 & s2) == sorted(list(set(l1) & set(l2))))
 
     def test_or(self):
 
@@ -63,7 +66,7 @@ class IntSetTestCase(unittest.TestCase):
 
         s1 = IntSet(l1)
         s2 = IntSet(l2)
-        self.assertListEqual(list(s1 | s2), sorted(list(set(l1) | set(l2))))
+        self.assertTrue(list(s1 | s2) == sorted(list(set(l1) | set(l2))))
 
 
     def test_sub(self):
@@ -74,7 +77,7 @@ class IntSetTestCase(unittest.TestCase):
         s1 = IntSet(l1)
         s2 = IntSet(l2)
 
-        self.assertEqual(list(s1 - s2), sorted(list(set(l1) - set(l2))))
+        self.assertTrue(list(s1 - s2) == sorted(list(set(l1) - set(l2))))
 
     def test_xor(self):
         l1 = random.sample(xrange(10000), 2000)
@@ -82,7 +85,7 @@ class IntSetTestCase(unittest.TestCase):
 
         s1 = IntSet(l1)
         s2 = IntSet(l2)
-        self.assertEqual(list(s1^s2), sorted(list(set(l1)^set(l2))))
+        self.assertTrue(list(s1^s2) == sorted(list(set(l1)^set(l2))))
     def test_cmp(self):
         l1 = random.sample(xrange(10000), 2000)
 
@@ -151,7 +154,7 @@ class IntSetTestCase(unittest.TestCase):
         for x in l2:
             s1.remove(x)
             s2.remove(x)
-        self.assertListEqual(list(s1), sorted(s2))
+        self.assertTrue(list(s1), sorted(s2))
         self.assertRaises(KeyError, s1.remove, 10001)
 
     def test_discard(self):
@@ -164,7 +167,7 @@ class IntSetTestCase(unittest.TestCase):
             s1.discard(x)
             s2.discard(x)
 
-        self.assertListEqual(list(s1), sorted(s2))
+        self.assertTrue(list(s1), sorted(s2))
         s1.discard(10001)
 
     def test_copy(self):
