@@ -105,45 +105,35 @@ static PyObject* set_new(PyTypeObject *type, PyObject *args, PyObject *kwds){
     return make_new_set(type, NULL);
 };
 
-//static int set_update_internal(IntSetObject * set_obj, PyObject * other){
-//	set_obj->intset = intset_new();
-//	PyObject * it , *key;
-//	it =  PyObject_GetIter(other);
-//	if(it == NULL)return -1;
-//	while((key = PyIter_Next(it))!= NULL){
-//		long x = PyInt_AsLong(key);
-//		intset_add(set_obj->intset, x);
-//		Py_DECREF(key);
-//	}
-//	Py_DECREF(it);
-//	if(PyErr_Occurred())return -1;
-//    return 0;
-//};
-
-
 static int set_update_internal(IntSetObject * set_obj, PyObject * other){
 	if(IntSet_Check(other)){
 		set_obj->intset = intset_copy(((IntSetObject *)other)->intset);
 		return 0;
 	}
-	if(!PySequence_Check(other)){
-		return -1;
+	int count = 0;
+	if(PySequence_Check(other)){
+		count = PySequence_Length(other);
+	}else if(PyAnySet_Check(other)){
+		count = PySet_Size(other);
+	}else if(PyDict_Check(other)){
+		count = PyDict_Size(other);
+	}else{
+		PyErr_Format(PyExc_TypeError, "args type %s is not support", Py_TYPE(other)->tp_name);
+		PyErr_Occurred();
 	}
-	PyObject * keys = PySequence_List(other);
-    if(keys == NULL)return -1;
-	int num = PyList_Size(keys);
-	long data[num];
-	for(int i=0;i<num;i++){
-		PyObject * key = PyList_GetItem(keys, (Py_ssize_t)i);
-		if(key == NULL)continue;
-        long x = PyInt_AsLong(key);
+	long data[count];
+	set_obj->intset = intset_new();
+
+	PyObject * it , *key;
+	it =  PyObject_GetIter(other);
+	if(it == NULL)return -1;
+	for(int i=0;(key = PyIter_Next(it))!= NULL&&i < count;i++){
+		long x = PyInt_AsLong(key);
 		data[i] = x;
-    }
-    Py_DECREF(keys);
-	IntSet * set = intset_new();
-	intset_add_array(set, data, num);
-	set_obj->intset = set;
-    if (PyErr_Occurred())return -1;
+		Py_DECREF(key);
+	}
+	Py_DECREF(it);
+	intset_add_array(set_obj->intset, data, count);
     return 0;
 };
 

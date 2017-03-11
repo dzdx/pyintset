@@ -9,11 +9,21 @@ import time
 
 class IntSetTestCase(unittest.TestCase):
 
+
+    def test_init(self):
+        data = random.sample(xrange(10000), 2000)
+
+        self.assertTrue(list(IntSet(data))==sorted(data))
+        self.assertTrue(list(IntSet())==[])
+        self.assertTrue(list(IntSet([]))==[])
+        self.assertTrue(list(IntSet(set(range(10))))==range(10))
+        self.assertTrue(list(IntSet(xrange(10)))==range(10))
+        self.assertTrue(list(IntSet({1:1}))==[1])
+
     def test_iter(self):
         data = random.sample(xrange(10000), 2000)
         s = IntSet(data)
         self.assertTrue(list(s)==sorted(data))
-
 
     def test_add(self):
         l1 = random.sample(xrange(10000), 2000)

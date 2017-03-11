@@ -189,12 +189,11 @@ int intset_insert_after(IntSet *set, long x, Block ** block_ref){
 
 	Block * block = *block_ref;
 
-    for (; block != set->root && block->offset <= offset;) {
+    for (; block != set->root && block->offset <= offset;block=block->next) {
         if (block->offset == offset) {
 			*block_ref = block;
             return block_add(block, index);
         }
-        block = block->next;
     }
     Block *new_block = calloc(1, sizeof(Block));
 
