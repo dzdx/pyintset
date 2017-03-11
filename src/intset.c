@@ -227,8 +227,7 @@ void intset_add_array(IntSet *set, long* xs, int num){
 	qsort(xs, num, sizeof(long), intset_item_cmp);
 	for(int i=0;i<num;i++){
 		long x = xs[i];
-		intset_add(set, x);
-//		intset_insert_after(set, x, block_ref);
+		intset_insert_after(set, x, block_ref);
 	}
 }
 

@@ -105,47 +105,47 @@ static PyObject* set_new(PyTypeObject *type, PyObject *args, PyObject *kwds){
     return make_new_set(type, NULL);
 };
 
-static int set_update_internal(IntSetObject * set_obj, PyObject * other){
-	set_obj->intset = intset_new();
-	PyObject * it , *key;
-	it =  PyObject_GetIter(other);
-	if(it == NULL)return -1;
-	while((key = PyIter_Next(it))!= NULL){
-		long x = PyInt_AsLong(key);
-		intset_add(set_obj->intset, x);
-		Py_DECREF(key);
-	}
-	Py_DECREF(it);
-	if(PyErr_Occurred())return -1;
-    return 0;
-};
-
-
 //static int set_update_internal(IntSetObject * set_obj, PyObject * other){
-//	if(IntSet_Check(other)){
-//		set_obj->intset = intset_copy(((IntSetObject *)other)->intset);
-//		return 0;
+//	set_obj->intset = intset_new();
+//	PyObject * it , *key;
+//	it =  PyObject_GetIter(other);
+//	if(it == NULL)return -1;
+//	while((key = PyIter_Next(it))!= NULL){
+//		long x = PyInt_AsLong(key);
+//		intset_add(set_obj->intset, x);
+//		Py_DECREF(key);
 //	}
-//	if(!PySequence_Check(other)){
-//		return -1;
-//	}
-//	PyObject * keys = PySequence_List(other);
-//    if(keys == NULL)return -1;
-//	int num = PyList_Size(keys);
-//	long data[num];
-//	for(int i=0;i<num;i++){
-//		PyObject * key = PyList_GetItem(keys, i);
-//        long x = PyInt_AsLong(key);
-//        Py_DECREF(key);
-//		data[i] = x;
-//    }
-//    Py_DECREF(keys);
-//	IntSet * set = intset_new();
-//	intset_add_array(set, data, num);
-//	set_obj->intset = set;
-//    if (PyErr_Occurred())return -1;
+//	Py_DECREF(it);
+//	if(PyErr_Occurred())return -1;
 //    return 0;
 //};
+
+
+static int set_update_internal(IntSetObject * set_obj, PyObject * other){
+	if(IntSet_Check(other)){
+		set_obj->intset = intset_copy(((IntSetObject *)other)->intset);
+		return 0;
+	}
+	if(!PySequence_Check(other)){
+		return -1;
+	}
+	PyObject * keys = PySequence_List(other);
+    if(keys == NULL)return -1;
+	int num = PyList_Size(keys);
+	long data[num];
+	for(int i=0;i<num;i++){
+		PyObject * key = PyList_GetItem(keys, (Py_ssize_t)i);
+		if(key == NULL)continue;
+        long x = PyInt_AsLong(key);
+		data[i] = x;
+    }
+    Py_DECREF(keys);
+	IntSet * set = intset_new();
+	intset_add_array(set, data, num);
+	set_obj->intset = set;
+    if (PyErr_Occurred())return -1;
+    return 0;
+};
 
 
 static int set_init(IntSetObject * set_obj, PyObject *args, PyObject *kwds){
