@@ -1,10 +1,7 @@
 import unittest
 
-import cProfile
-
 from intset import IntSet
 import random
-import time
 
 
 class IntSetTestCase(unittest.TestCase):
@@ -14,6 +11,7 @@ class IntSetTestCase(unittest.TestCase):
         data = random.sample(xrange(10000), 2000)
 
         self.assertTrue(list(IntSet(data))==sorted(data))
+        self.assertTrue(list(IntSet(IntSet(data)))==sorted(data))
         self.assertTrue(list(IntSet())==[])
         self.assertTrue(list(IntSet([]))==[])
         self.assertTrue(list(IntSet(set(range(10))))==range(10))
@@ -180,15 +178,21 @@ class IntSetTestCase(unittest.TestCase):
         l1 = random.sample(xrange(10000), 2000)
         l2 = random.sample(xrange(10000), 2000)
 
-        s1 = IntSet(l1)
         s2 = set(l1)
-        s1.difference_update(l2)
-        s2.difference_update(l2)
-        #self.assertTrue(list(s1) == sorted(list(s2)))
+        s2.update(l2)
 
         s1 = IntSet(l1)
-        s1.difference_update(IntSet(l2))
-        #self.assertTrue(list(s1) == sorted(list(s2)))
+        s1.update(l2)
+        self.assertTrue(list(s1) == sorted(list(s2)))
+
+        s1 = IntSet(l1)
+        s1.update(set(l2))
+        self.assertTrue(list(s1) == sorted(list(s2)))
+
+        s1 = IntSet(l1)
+        s1.update(IntSet(l2))
+        self.assertTrue(list(s1) == sorted(list(s2)))
+
 
     def test_symmetric_difference(self):
 

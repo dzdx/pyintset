@@ -4,6 +4,8 @@
 
 #include <structmember.h>
 
+
+
 typedef struct{
     PyObject_HEAD
     IntSetIter * iter;
@@ -76,7 +78,12 @@ static PyTypeObject IterObject_Type ={
 
 static PyTypeObject IntSetObject_Type;
 
-#define IntSet_Check(obj)   (Py_TYPE(obj) == &IntSetObject_Type)
+#define IntSetObj_Check(obj)   (Py_TYPE(obj) == &IntSetObject_Type)
+
+#define ALLOW_TYPE_CHECK(other) (PyAnySet_Check(other) \
+								|| PySequence_Check(other) \
+								|| PyDict_Check(other))
+
 
 typedef struct{
     PyObject_HEAD
@@ -105,36 +112,30 @@ static PyObject* set_new(PyTypeObject *type, PyObject *args, PyObject *kwds){
     return make_new_set(type, NULL);
 };
 
-static int set_update_internal(IntSetObject * set_obj, PyObject * other){
-	if(IntSet_Check(other)){
-		set_obj->intset = intset_copy(((IntSetObject *)other)->intset);
-		return 0;
-	}
+
+IntSet* get_intset_from_obj(PyObject *obj){
 	int count = 0;
-	if(PySequence_Check(other)){
-		count = PySequence_Length(other);
-	}else if(PyAnySet_Check(other)){
-		count = PySet_Size(other);
-	}else if(PyDict_Check(other)){
-		count = PyDict_Size(other);
-	}else{
-		PyErr_Format(PyExc_TypeError, "args type %s is not support", Py_TYPE(other)->tp_name);
-		PyErr_Occurred();
+	if(PySequence_Check(obj)){
+		count = PySequence_Length(obj);
+	}else if(PyAnySet_Check(obj)){
+		count = PySet_Size(obj);
+	}else if(PyDict_Check(obj)){
+		count = PyDict_Size(obj);
 	}
 	long data[count];
-	set_obj->intset = intset_new();
-
 	PyObject * it , *key;
-	it =  PyObject_GetIter(other);
-	if(it == NULL)return -1;
+	it =  PyObject_GetIter(obj);
+	IntSet * intset = intset_new();
+	if(it == NULL)return intset;
 	for(int i=0;(key = PyIter_Next(it))!= NULL&&i < count;i++){
 		long x = PyInt_AsLong(key);
 		data[i] = x;
 		Py_DECREF(key);
 	}
 	Py_DECREF(it);
-	intset_add_array(set_obj->intset, data, count);
-    return 0;
+
+	intset_add_array(intset, data, count);
+	return intset;
 };
 
 
@@ -146,7 +147,18 @@ static int set_init(IntSetObject * set_obj, PyObject *args, PyObject *kwds){
 		set_obj->intset = intset_new();
 		return 0;
 	}
-    return set_update_internal(set_obj, iterable);
+	if(IntSetObj_Check(iterable)){
+		set_obj->intset = intset_copy(((IntSetObject *)iterable)->intset);
+		return 0;
+	}
+	if(ALLOW_TYPE_CHECK(iterable)){
+		set_obj->intset = get_intset_from_obj(iterable);
+		return 0;
+	}
+	set_obj->intset = intset_new();
+	PyErr_Format(PyExc_TypeError, "args type %s is not support", Py_TYPE(iterable)->tp_name);
+	PyErr_Occurred();
+    return 0;
 };
 
 
@@ -284,7 +296,7 @@ static PyObject * set_xor(IntSetObject *set_obj, PyObject * other){
 }
 
 static PyObject * set_union(IntSetObject *set_obj, PyObject * other){
-	if(!IntSet_Check(other)){
+	if(!IntSetObj_Check(other)){
 		PyErr_Format(PyExc_TypeError, "args must be IntSet type");
 		PyErr_Occurred();
         return NULL;
@@ -298,10 +310,10 @@ static PyObject * set_update(IntSetObject *set_obj, PyObject * other){
 }
 
 static PyObject * set_intersection(IntSetObject *set_obj, PyObject * other){
-	if(!IntSet_Check(other)){
-		PyErr_Format(PyExc_TypeError, "args must be IntSet type");
+	if(!IntSetObj_Check(other)){
+		PyErr_Format(PyExc_TypeError, "args type %s is not support", Py_TYPE(other)->tp_name);
 		PyErr_Occurred();
-        return NULL;
+		Py_RETURN_NONE;
 	}
     IntSet* s = intset_and(set_obj->intset, ((IntSetObject *)other)->intset);
     return make_new_set(Py_TYPE(set_obj), s);
@@ -313,7 +325,7 @@ static PyObject * set_intersection_update(IntSetObject * set_obj, PyObject *othe
 }
 
 static PyObject * set_difference(IntSetObject *set_obj, PyObject * other){
-	if(!IntSet_Check(other)){
+	if(!IntSetObj_Check(other)){
 		PyErr_Format(PyExc_TypeError, "args must be IntSet type");
 		PyErr_Occurred();
         return NULL;
@@ -327,7 +339,7 @@ static PyObject * set_difference_update(IntSetObject *set_obj, PyObject * other)
 }
 
 static PyObject * set_symmetric_difference(IntSetObject *set_obj, PyObject * other){
-	if(!IntSet_Check(other)){
+	if(!IntSetObj_Check(other)){
 		PyErr_Format(PyExc_TypeError, "args must be IntSet type");
 		PyErr_Occurred();
         return NULL;
@@ -351,7 +363,7 @@ static PyObject * set_copy(IntSetObject * set_obj){
 }
 
 static PyObject * set_issubset(IntSetObject * set_obj, PyObject * other){
-    if(!IntSet_Check(other)){
+    if(!IntSetObj_Check(other)){
         PyErr_Format(PyExc_TypeError, "%s", Py_TYPE(other)->tp_name);
         PyErr_Occurred();
         Py_INCREF(Py_NotImplemented);
@@ -366,7 +378,7 @@ static PyObject * set_issubset(IntSetObject * set_obj, PyObject * other){
 }
 
 static PyObject * set_issuperset(IntSetObject * set_obj, PyObject * other){
-    if(!IntSet_Check(other)){
+    if(!IntSetObj_Check(other)){
         PyErr_Format(PyExc_TypeError, "%s", Py_TYPE(other)->tp_name);
         PyErr_Occurred();
         Py_INCREF(Py_NotImplemented);
@@ -394,7 +406,7 @@ static PyObject * set_direct_contains(IntSetObject * set_obj, PyObject *obj){
 
 
 static PyObject * set_richcompare(IntSetObject *set_obj, PyObject *obj, int op){
-    if(!IntSet_Check(obj)){
+    if(!IntSetObj_Check(obj)){
         PyErr_Format(PyExc_TypeError, "%s", Py_TYPE(obj)->tp_name);
         PyErr_Occurred();
         return NULL;
