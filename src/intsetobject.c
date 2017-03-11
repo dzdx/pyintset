@@ -80,9 +80,10 @@ static PyTypeObject IntSetObject_Type;
 
 #define IntSetObj_Check(obj)   (Py_TYPE(obj) == &IntSetObject_Type)
 
-#define ALLOW_TYPE_CHECK(other) (PyAnySet_Check(other) \
+#define Allow_Type_Check(other) (PyAnySet_Check(other) \
 								|| PySequence_Check(other) \
 								|| PyDict_Check(other))
+#define Free_IntSet(set) intset_clear(set);free(set);
 
 
 typedef struct{
@@ -93,8 +94,7 @@ typedef struct{
 
 static void set_dealloc(IntSetObject* set_obj){
 
-    intset_clear(set_obj->intset);
-    free(set_obj->intset);
+	Free_IntSet(set_obj->intset)
     Py_TYPE(set_obj)->tp_free(set_obj);
 };
 
@@ -151,7 +151,7 @@ static int set_init(IntSetObject * set_obj, PyObject *args, PyObject *kwds){
 		set_obj->intset = intset_copy(((IntSetObject *)iterable)->intset);
 		return 0;
 	}
-	if(ALLOW_TYPE_CHECK(iterable)){
+	if(Allow_Type_Check(iterable)){
 		set_obj->intset = get_intset_from_obj(iterable);
 		return 0;
 	}
@@ -296,59 +296,149 @@ static PyObject * set_xor(IntSetObject *set_obj, PyObject * other){
 }
 
 static PyObject * set_union(IntSetObject *set_obj, PyObject * other){
-	if(!IntSetObj_Check(other)){
-		PyErr_Format(PyExc_TypeError, "args must be IntSet type");
-		PyErr_Occurred();
-        return NULL;
+	if(IntSetObj_Check(other)){
+		IntSet *rs = intset_or(set_obj->intset, ((IntSetObject *)other)->intset);
+		return make_new_set(Py_TYPE(set_obj), rs);
 	}
-    IntSet* s = intset_or(set_obj->intset, ((IntSetObject *)other)->intset);
-    return make_new_set(Py_TYPE(set_obj), s);
+	if(Allow_Type_Check(other)){
+		IntSet * set = get_intset_from_obj(other);
+		IntSet *rs = intset_or(set_obj->intset, set);
+		Free_IntSet(set);
+		return make_new_set(Py_TYPE(set_obj), rs);
+	}
+	PyErr_Format(PyExc_TypeError, "args type %s is not support", Py_TYPE(other)->tp_name);
+	PyErr_Occurred();
+	Py_RETURN_NONE;
 }
 
 static PyObject * set_update(IntSetObject *set_obj, PyObject * other){
+	if(IntSetObj_Check(other)){
+		intset_merge(set_obj->intset, ((IntSetObject *)other)->intset);
+		Py_RETURN_NONE;
+	}
+	if(Allow_Type_Check(other)){
+		IntSet * intset = get_intset_from_obj(other);
+		intset_merge(set_obj->intset, intset);
+		Free_IntSet(intset)
+		Py_RETURN_NONE;
+	}
+	PyErr_Format(PyExc_TypeError, "args type %s is not support", Py_TYPE(other)->tp_name);
+	PyErr_Occurred();
 	Py_RETURN_NONE;
 }
 
 static PyObject * set_intersection(IntSetObject *set_obj, PyObject * other){
-	if(!IntSetObj_Check(other)){
-		PyErr_Format(PyExc_TypeError, "args type %s is not support", Py_TYPE(other)->tp_name);
-		PyErr_Occurred();
-		Py_RETURN_NONE;
+	if(IntSetObj_Check(other)){
+		IntSet *rs = intset_and(set_obj->intset, ((IntSetObject *)other)->intset);
+		return make_new_set(Py_TYPE(set_obj), rs);
 	}
-    IntSet* s = intset_and(set_obj->intset, ((IntSetObject *)other)->intset);
-    return make_new_set(Py_TYPE(set_obj), s);
+	if(Allow_Type_Check(other)){
+		IntSet * set = get_intset_from_obj(other);
+		IntSet *rs = intset_and(set_obj->intset, set);
+		Free_IntSet(set);
+		return make_new_set(Py_TYPE(set_obj), rs);
+	}
+	PyErr_Format(PyExc_TypeError, "args type %s is not support", Py_TYPE(other)->tp_name);
+	PyErr_Occurred();
+	Py_RETURN_NONE;
 }
 
 
 static PyObject * set_intersection_update(IntSetObject * set_obj, PyObject *other){
+	if(IntSetObj_Check(other)){
+		IntSet *rs = intset_and(set_obj->intset, ((IntSetObject *)other)->intset);
+		Free_IntSet(set_obj->intset);
+		set_obj->intset = rs;
+		Py_RETURN_NONE;
+	}
+	if(Allow_Type_Check(other)){
+		IntSet * set = get_intset_from_obj(other);
+		IntSet *rs = intset_and(set_obj->intset, set);
+
+		Free_IntSet(set);
+		Free_IntSet(set_obj->intset);
+
+		set_obj->intset = rs;
+		Py_RETURN_NONE;
+	}
+	PyErr_Format(PyExc_TypeError, "args type %s is not support", Py_TYPE(other)->tp_name);
+	PyErr_Occurred();
 	Py_RETURN_NONE;
 }
 
 static PyObject * set_difference(IntSetObject *set_obj, PyObject * other){
-	if(!IntSetObj_Check(other)){
-		PyErr_Format(PyExc_TypeError, "args must be IntSet type");
-		PyErr_Occurred();
-        return NULL;
+	if(IntSetObj_Check(other)){
+		IntSet *rs = intset_sub(set_obj->intset, ((IntSetObject *)other)->intset);
+		return make_new_set(Py_TYPE(set_obj), rs);
 	}
-    IntSet* s = intset_sub(set_obj->intset, ((IntSetObject *)other)->intset);
-    return make_new_set(Py_TYPE(set_obj), s);
+	if(Allow_Type_Check(other)){
+		IntSet * set = get_intset_from_obj(other);
+		IntSet *rs = intset_sub(set_obj->intset, set);
+		Free_IntSet(set);
+		return make_new_set(Py_TYPE(set_obj), rs);
+	}
+	PyErr_Format(PyExc_TypeError, "args type %s is not support", Py_TYPE(other)->tp_name);
+	PyErr_Occurred();
+	Py_RETURN_NONE;
 }
 
 static PyObject * set_difference_update(IntSetObject *set_obj, PyObject * other){
+	if(IntSetObj_Check(other)){
+		IntSet *rs = intset_sub(set_obj->intset, ((IntSetObject *)other)->intset);
+		Free_IntSet(set_obj->intset);
+		set_obj->intset = rs;
+		Py_RETURN_NONE;
+	}
+	if(Allow_Type_Check(other)){
+		IntSet * set = get_intset_from_obj(other);
+		IntSet *rs = intset_sub(set_obj->intset, set);
+
+		Free_IntSet(set);
+		Free_IntSet(set_obj->intset);
+
+		set_obj->intset = rs;
+		Py_RETURN_NONE;
+	}
+	PyErr_Format(PyExc_TypeError, "args type %s is not support", Py_TYPE(other)->tp_name);
+	PyErr_Occurred();
 	Py_RETURN_NONE;
 }
 
 static PyObject * set_symmetric_difference(IntSetObject *set_obj, PyObject * other){
-	if(!IntSetObj_Check(other)){
-		PyErr_Format(PyExc_TypeError, "args must be IntSet type");
-		PyErr_Occurred();
-        return NULL;
+	if(IntSetObj_Check(other)){
+		IntSet *rs = intset_xor(set_obj->intset, ((IntSetObject *)other)->intset);
+		return make_new_set(Py_TYPE(set_obj), rs);
 	}
-    IntSet* s = intset_xor(set_obj->intset, ((IntSetObject *)other)->intset);
-    return make_new_set(Py_TYPE(set_obj), s);
+	if(Allow_Type_Check(other)){
+		IntSet * set = get_intset_from_obj(other);
+		IntSet *rs = intset_xor(set_obj->intset, set);
+		Free_IntSet(set);
+		return make_new_set(Py_TYPE(set_obj), rs);
+	}
+	PyErr_Format(PyExc_TypeError, "args type %s is not support", Py_TYPE(other)->tp_name);
+	PyErr_Occurred();
+	Py_RETURN_NONE;
 }
 
 static PyObject * set_symmetric_difference_update(IntSetObject *set_obj, PyObject * other){
+	if(IntSetObj_Check(other)){
+		IntSet *rs = intset_xor(set_obj->intset, ((IntSetObject *)other)->intset);
+		Free_IntSet(set_obj->intset);
+		set_obj->intset = rs;
+		Py_RETURN_NONE;
+	}
+	if(Allow_Type_Check(other)){
+		IntSet * set = get_intset_from_obj(other);
+		IntSet *rs = intset_xor(set_obj->intset, set);
+
+		Free_IntSet(set);
+		Free_IntSet(set_obj->intset);
+
+		set_obj->intset = rs;
+		Py_RETURN_NONE;
+	}
+	PyErr_Format(PyExc_TypeError, "args type %s is not support", Py_TYPE(other)->tp_name);
+	PyErr_Occurred();
 	Py_RETURN_NONE;
 }
 

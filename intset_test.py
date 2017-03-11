@@ -127,6 +127,7 @@ class IntSetTestCase(unittest.TestCase):
         s2 = set(l1)
 
         self.assertTrue(list(s1.intersection(IntSet(l2))) == sorted(list(s2.intersection(l2))))
+        self.assertTrue(list(s1.intersection(l2)) == sorted(list(s2.intersection(l2))))
 
     def test_intersection_update(self):
         l1 = random.sample(xrange(10000), 2000)
@@ -136,11 +137,11 @@ class IntSetTestCase(unittest.TestCase):
         s2 = set(l1)
         s1.intersection_update(l2)
         s2.intersection_update(l2)
-        #self.assertTrue(list(s1) == sorted(list(s2)))
+        self.assertTrue(list(s1) == sorted(list(s2)))
 
         s1 = IntSet(l1)
         s1.intersection_update(IntSet(l2))
-        #self.assertTrue(list(s1) == sorted(list(s2)))
+        self.assertTrue(list(s1) == sorted(list(s2)))
 
     def test_difference(self):
         l1 = random.sample(xrange(10000), 2000)
@@ -150,6 +151,7 @@ class IntSetTestCase(unittest.TestCase):
         s2 = set(l1)
 
         self.assertTrue(list(s1.difference(IntSet(l2))) == sorted(list(s2.difference(l2))))
+        self.assertTrue(list(s1.difference(l2)) == sorted(list(s2.difference(l2))))
 
     def test_difference_update(self):
         l1 = random.sample(xrange(10000), 2000)
@@ -159,11 +161,11 @@ class IntSetTestCase(unittest.TestCase):
         s2 = set(l1)
         s1.update(l2)
         s2.update(l2)
-        #self.assertTrue(list(s1) == sorted(list(s2)))
+        self.assertTrue(list(s1) == sorted(list(s2)))
 
         s1 = IntSet(l1)
         s1.update(IntSet(l2))
-        #self.assertTrue(list(s1) == sorted(list(s2)))
+        self.assertTrue(list(s1) == sorted(list(s2)))
 
     def test_union(self):
         l1 = random.sample(xrange(10000), 2000)
@@ -173,6 +175,7 @@ class IntSetTestCase(unittest.TestCase):
         s2 = set(l1)
 
         self.assertTrue(list(s1.union(IntSet(l2))) == sorted(list(s2.union(l2))))
+        self.assertTrue(list(s1.union(l2)) == sorted(list(s2.union(l2))))
 
     def test_update(self):
         l1 = random.sample(xrange(10000), 2000)
@@ -203,6 +206,7 @@ class IntSetTestCase(unittest.TestCase):
         s2 = set(l1)
 
         self.assertTrue(list(s1.symmetric_difference(IntSet(l2))) == sorted(list(s2.symmetric_difference(l2))))
+        self.assertTrue(list(s1.symmetric_difference(l2)) == sorted(list(s2.symmetric_difference(l2))))
 
     def test_symmetric_difference_update(self):
 
@@ -213,11 +217,11 @@ class IntSetTestCase(unittest.TestCase):
         s2 = set(l1)
         s1.symmetric_difference_update(l2)
         s2.symmetric_difference_update(l2)
-        #self.assertTrue(list(s1) == sorted(list(s2)))
+        self.assertTrue(list(s1) == sorted(list(s2)))
 
         s1 = IntSet(l1)
         s1.symmetric_difference_update(IntSet(l2))
-        #self.assertTrue(list(s1) == sorted(list(s2)))
+        self.assertTrue(list(s1) == sorted(list(s2)))
 
     def test_issubset(self):
         l1 = random.sample(xrange(10000), 2000)
