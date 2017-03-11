@@ -14,8 +14,6 @@ class IntSetTestCase(unittest.TestCase):
         s = IntSet(data)
         self.assertTrue(list(s)==sorted(data))
 
-        s1 = iter(s)
-        s2 = iter(s)
 
     def test_add(self):
         l1 = random.sample(xrange(10000), 2000)
@@ -23,13 +21,15 @@ class IntSetTestCase(unittest.TestCase):
         for x in l1:
             s.add(x)
         self.assertTrue(list(s) == sorted(l1))
+        self.assertRaises(TypeError, s.add, "1000000")
 
     def test_contains(self):
         l1 = random.sample(xrange(10000), 2000)
-        l2 = random.sample(l1, 30)
+        l2 = random.sample(l1, 100)
         s = IntSet(l1)
         for x in l2:
             self.assertIn(x, s)
+        self.assertRaises(TypeError, lambda: "1" in s)
 
     def test_clear(self):
          s = IntSet(random.sample(xrange(10000), 2000))
@@ -58,6 +58,7 @@ class IntSetTestCase(unittest.TestCase):
         s1 = IntSet(l1)
         s2 = IntSet(l2)
         self.assertTrue(list(s1 & s2) == sorted(list(set(l1) & set(l2))))
+        self.assertRaises(TypeError, lambda:s1 & [])
 
     def test_or(self):
 
@@ -67,6 +68,7 @@ class IntSetTestCase(unittest.TestCase):
         s1 = IntSet(l1)
         s2 = IntSet(l2)
         self.assertTrue(list(s1 | s2) == sorted(list(set(l1) | set(l2))))
+        self.assertRaises(TypeError, lambda:s1 | [])
 
 
     def test_sub(self):
@@ -78,6 +80,7 @@ class IntSetTestCase(unittest.TestCase):
         s2 = IntSet(l2)
 
         self.assertTrue(list(s1 - s2) == sorted(list(set(l1) - set(l2))))
+        self.assertRaises(TypeError, lambda:s1 - [])
 
     def test_xor(self):
         l1 = random.sample(xrange(10000), 2000)
@@ -86,6 +89,8 @@ class IntSetTestCase(unittest.TestCase):
         s1 = IntSet(l1)
         s2 = IntSet(l2)
         self.assertTrue(list(s1^s2) == sorted(list(set(l1)^set(l2))))
+        self.assertRaises(TypeError, lambda:s1 ^ [])
+
     def test_cmp(self):
         l1 = random.sample(xrange(10000), 2000)
 
@@ -104,31 +109,101 @@ class IntSetTestCase(unittest.TestCase):
         self.assertTrue(s2 >= s1)
         self.assertTrue(s1 <= s2)
 
+        self.assertRaises(TypeError, lambda: s1 <= "1")
 
     def test_intersection(self):
-        pass
+        l1 = random.sample(xrange(10000), 2000)
+        l2 = random.sample(xrange(10000), 2000)
+
+        s1 = IntSet(l1)
+        s2 = set(l1)
+
+        self.assertTrue(list(s1.intersection(IntSet(l2))) == sorted(list(s2.intersection(l2))))
 
     def test_intersection_update(self):
-        pass
+        l1 = random.sample(xrange(10000), 2000)
+        l2 = random.sample(xrange(10000), 2000)
 
+        s1 = IntSet(l1)
+        s2 = set(l1)
+        s1.intersection_update(l2)
+        s2.intersection_update(l2)
+        #self.assertTrue(list(s1) == sorted(list(s2)))
+
+        s1 = IntSet(l1)
+        s1.intersection_update(IntSet(l2))
+        #self.assertTrue(list(s1) == sorted(list(s2)))
 
     def test_difference(self):
-        pass
+        l1 = random.sample(xrange(10000), 2000)
+        l2 = random.sample(xrange(10000), 2000)
+
+        s1 = IntSet(l1)
+        s2 = set(l1)
+
+        self.assertTrue(list(s1.difference(IntSet(l2))) == sorted(list(s2.difference(l2))))
 
     def test_difference_update(self):
-        pass
+        l1 = random.sample(xrange(10000), 2000)
+        l2 = random.sample(xrange(10000), 2000)
+
+        s1 = IntSet(l1)
+        s2 = set(l1)
+        s1.update(l2)
+        s2.update(l2)
+        #self.assertTrue(list(s1) == sorted(list(s2)))
+
+        s1 = IntSet(l1)
+        s1.update(IntSet(l2))
+        #self.assertTrue(list(s1) == sorted(list(s2)))
 
     def test_union(self):
-        pass
+        l1 = random.sample(xrange(10000), 2000)
+        l2 = random.sample(xrange(10000), 2000)
+
+        s1 = IntSet(l1)
+        s2 = set(l1)
+
+        self.assertTrue(list(s1.union(IntSet(l2))) == sorted(list(s2.union(l2))))
 
     def test_update(self):
-        pass
+        l1 = random.sample(xrange(10000), 2000)
+        l2 = random.sample(xrange(10000), 2000)
+
+        s1 = IntSet(l1)
+        s2 = set(l1)
+        s1.difference_update(l2)
+        s2.difference_update(l2)
+        #self.assertTrue(list(s1) == sorted(list(s2)))
+
+        s1 = IntSet(l1)
+        s1.difference_update(IntSet(l2))
+        #self.assertTrue(list(s1) == sorted(list(s2)))
 
     def test_symmetric_difference(self):
-        pass
+
+        l1 = random.sample(xrange(10000), 2000)
+        l2 = random.sample(xrange(10000), 2000)
+
+        s1 = IntSet(l1)
+        s2 = set(l1)
+
+        self.assertTrue(list(s1.symmetric_difference(IntSet(l2))) == sorted(list(s2.symmetric_difference(l2))))
 
     def test_symmetric_difference_update(self):
-        pass
+
+        l1 = random.sample(xrange(10000), 2000)
+        l2 = random.sample(xrange(10000), 2000)
+
+        s1 = IntSet(l1)
+        s2 = set(l1)
+        s1.symmetric_difference_update(l2)
+        s2.symmetric_difference_update(l2)
+        #self.assertTrue(list(s1) == sorted(list(s2)))
+
+        s1 = IntSet(l1)
+        s1.symmetric_difference_update(IntSet(l2))
+        #self.assertTrue(list(s1) == sorted(list(s2)))
 
     def test_issubset(self):
         l1 = random.sample(xrange(10000), 2000)
@@ -136,6 +211,7 @@ class IntSetTestCase(unittest.TestCase):
         s1 = IntSet(l2)
         s2 = IntSet(l1)
         self.assertTrue(s1.issubset(s2))
+        self.assertRaises(TypeError, lambda:s1.issubset("123"))
 
     def test_issuperset(self):
         l1 = random.sample(xrange(10000), 2000)
@@ -143,6 +219,7 @@ class IntSetTestCase(unittest.TestCase):
         s1 = IntSet(l1)
         s2 = IntSet(l2)
         self.assertTrue(s1.issuperset(s2))
+        self.assertRaises(TypeError, lambda:s1.issuperset("123"))
 
 
     def test_remove(self):

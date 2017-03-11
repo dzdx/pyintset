@@ -29,7 +29,7 @@ static const int popCountTable[] = {0,1,1,2,1,2,2,3,1,2,2,3,2,3,3,4,
 #define byte_size 256
 
 
-int count_bit(unsigned long x){
+int count_bit(uint64_t x){
     int count = 0;
     while(x>0){
         count += popCountTable[x%byte_size];
@@ -38,15 +38,15 @@ int count_bit(unsigned long x){
     return count;
 }
 
-void word_offset_and_mask(int index, int *word_offset, unsigned long *mask) {
+inline void word_offset_and_mask(int index, int *word_offset, uint64_t *mask) {
     *word_offset = index / BITS_PER_WORD;
-    *mask = (unsigned long) 1 << (index % BITS_PER_WORD);
+    *mask = (uint64_t) 1 << (index % BITS_PER_WORD);
 }
 
 
-int block_add(Block *block, unsigned int index) {
+int block_add(Block *block, int index) {
     int word_offset;
-    unsigned long mask;
+    uint64_t mask;
     word_offset_and_mask(index, &word_offset, &mask);
     if ((block->bits[word_offset] & mask) == 0) {
         block->bits[word_offset] |= mask;
@@ -63,9 +63,9 @@ int block_size(Block * block){
     return count;
 }
 
-int block_remove(Block *block, unsigned int index) {
+int block_remove(Block *block, int index) {
     int word_offset;
-    unsigned long mask;
+    uint64_t mask;
     word_offset_and_mask(index, &word_offset, &mask);
     if ((block->bits[word_offset] & mask) != 0) {
         block->bits[word_offset] &= ~mask;
@@ -76,19 +76,23 @@ int block_remove(Block *block, unsigned int index) {
 
 int block_has(Block *block, int index) {
     int word_offset;
-    unsigned long mask;
+    uint64_t mask;
     word_offset_and_mask(index, &word_offset, &mask);
     if ((block->bits[word_offset] & mask) != 0)
         return 1;
     return 0;
 }
 
-int block_next(Block *block, unsigned int index) {
+int block_next(Block *block, int index) {
     int word_offset;
-    unsigned long mask;
+    uint64_t mask;
     word_offset_and_mask(index, &word_offset, &mask);
     for (int i = word_offset; i < WORDS_PER_BLOCK; i++) {
-        for (unsigned int j = index % BITS_PER_WORD; j < BITS_PER_WORD; j++) {
+        if(block->bits[i]==0){
+            index = (i+1) * BITS_PER_WORD;
+            continue;
+        }
+        for (int j = index % BITS_PER_WORD; j < BITS_PER_WORD; j++) {
             if ((block->bits[i] & mask) != 0) {
                 return index;
             }
@@ -101,15 +105,15 @@ int block_next(Block *block, unsigned int index) {
 }
 
 long  block_max(Block *block, int *error) {
+	*error = 0;
     for (int i = WORDS_PER_BLOCK - 1; i >= 0; i--) {
-        unsigned long word = block->bits[i];
+        uint64_t word = block->bits[i];
         if (word == 0)continue;
-        unsigned long mask = (unsigned long) 1 << (BITS_PER_WORD - 1);
+        uint64_t mask = (uint64_t)1 << (BITS_PER_WORD - 1);
         for (int j = 0; j < BITS_PER_WORD; j++) {
             if (word & mask){
                 return block->offset + i * BITS_PER_WORD + BITS_PER_WORD - j - 1;
             }
-            *error = 0;
             mask >>= 1;
         }
     }
@@ -118,15 +122,15 @@ long  block_max(Block *block, int *error) {
 }
 
 long block_min(Block *block, int *error) {
+	*error = 0;
     for (int i = 0; i < WORDS_PER_BLOCK; i++) {
-        unsigned long word = block->bits[i];
+        uint64_t word = block->bits[i];
         if (word == 0)continue;
-        unsigned long mask = (unsigned long) 1;
+        uint64_t mask = 1;
         for (int j = 0; j < BITS_PER_WORD; j++) {
             if (word & mask){
                 return block->offset + i * BITS_PER_WORD + j;
             }
-            *error = 0;
             mask <<= 1;
         }
     }
@@ -145,8 +149,8 @@ int block_is_empty(Block *block) {
 }
 
 
-void offset_and_index(long x, long *offset, unsigned int *index) {
-    unsigned int base = (unsigned int) (int) (x % BIT_PER_BLOCK);
+inline void offset_and_index(long x, long *offset, int *index) {
+    int base = x % BIT_PER_BLOCK;
     *offset = x - base;
     *index = base;
 }
@@ -161,7 +165,7 @@ IntSet* intset_copy(IntSet *self){
     Block *block_self = intset_start(self);
     Block *copied_block = intset_start(copied);
     while(block_self!=self->root){
-        Block *block = calloc(1, sizeof(Block));
+        Block *block = malloc(sizeof(Block));
         memcpy(block->bits, block_self->bits, sizeof(block_self->bits));
         block->offset = block_self->offset;
         block->prev = copied_block;
@@ -177,22 +181,21 @@ IntSet* intset_copy(IntSet *self){
 }
 
 
-int intset_add(IntSet *set, long x) {
-
-    Block *block = intset_start(set);
-
+int intset_insert_after(IntSet *set, long x, Block ** block_ref){
     long offset;
-    unsigned int index;
+    int index;
     offset_and_index(x, &offset, &index);
+
+
+	Block * block = *block_ref;
 
     for (; block != set->root && block->offset <= offset;) {
         if (block->offset == offset) {
+			*block_ref = block;
             return block_add(block, index);
         }
         block = block->next;
     }
-
-
     Block *new_block = calloc(1, sizeof(Block));
 
 
@@ -203,8 +206,39 @@ int intset_add(IntSet *set, long x) {
     new_block->next->prev = new_block;
     new_block->prev->next = new_block;
 
+	*block_ref = new_block;
     return block_add(new_block, index);
 }
+
+
+int intset_add(IntSet *set, long x) {
+    Block *block = intset_start(set);
+	return intset_insert_after(set, x, &block);
+ }
+
+
+int intset_item_cmp(const void *a,const void *b){
+	return *(long *)a - *(long *)b;
+}
+
+void intset_add_array(IntSet *set, long* xs, int num){
+	Block * block = intset_start(set);
+	Block ** block_ref = &block;
+	qsort(xs, num, sizeof(long), intset_item_cmp);
+	for(int i=0;i<num;i++){
+		long x = xs[i];
+		intset_add(set, x);
+//		intset_insert_after(set, x, block_ref);
+	}
+}
+
+
+IntSet * intset_new(){
+	IntSet * set = malloc(sizeof(IntSet));
+	set->root = NULL;
+	return set;
+}
+
 
 Block *intset_get_block(IntSet *set, long offset);
 
@@ -212,7 +246,7 @@ void intset_removeblock(Block *pBlock);
 
 int intset_remove(IntSet *set, long x) {
     long offset;
-    unsigned int index;
+    int index;
     offset_and_index(x, &offset, &index);
     Block *block = intset_get_block(set, offset);
 
@@ -229,7 +263,7 @@ int intset_remove(IntSet *set, long x) {
 
 int intset_has(IntSet *set, long x) {
     long offset;
-    unsigned int index;
+    int index;
     offset_and_index(x, &offset, &index);
     Block *block = intset_get_block(set, offset);
     if (block != NULL)
@@ -278,11 +312,11 @@ int intset_is_empty(IntSet *set) {
     return intset_start(set) == set->root;
 }
 
-void intsetiter_next(IntSetIter *iter, long *val, int *stopped) {
+long intsetiter_next(IntSetIter *iter, int *stopped) {
 
     IntSet *set = iter->set;
     Block *b = iter->current_block;
-    unsigned int index = iter->current_index;
+    int index = iter->current_index;
     while (b != set->root) {
         index = block_next(b, index);
         if (index == -1) {
@@ -293,13 +327,12 @@ void intsetiter_next(IntSetIter *iter, long *val, int *stopped) {
             continue;
         }
         iter->current_index = index + 1;
-        *val = b->offset + index;
         *stopped = 0;
-        return;
+        return b->offset + index;
     }
     *stopped = 1;
-    return;
-}
+    return 0;
+ }
 
 
 long intset_max(IntSet *set, int *error) {
@@ -324,10 +357,10 @@ IntSet *intset_and(IntSet *self, IntSet *other) {
             block_other = block_other->next;
         } else {
             long offset = block_self->offset;
-            unsigned long words[WORDS_PER_BLOCK] = {0};
+            uint64_t words[WORDS_PER_BLOCK] = {0};
             int is_empty = 1;
             for (int i = 0; i < WORDS_PER_BLOCK; i++) {
-                unsigned long word = block_self->bits[i] & block_other->bits[i];
+                uint64_t word = block_self->bits[i] & block_other->bits[i];
                 if (word != 0)is_empty = 0;
                 words[i] = word;
             }
@@ -336,7 +369,7 @@ IntSet *intset_and(IntSet *self, IntSet *other) {
 
             if (is_empty == 1)continue;
 
-            Block *block = calloc(1, sizeof(Block));
+            Block *block = malloc(sizeof(Block));
             memcpy(block->bits, words, sizeof(words));
             block->offset = offset;
             block->prev = result_block;
@@ -348,56 +381,6 @@ IntSet *intset_and(IntSet *self, IntSet *other) {
     result_set->root->prev = result_block;
     result_block->next = result_set->root;
     return result_set;
-}
-
-void intset_merge(IntSet *self, IntSet *other){
- //   Block *block_self = intset_start(self);
-  //  Block *block_other = intset_start(other);
-
-//    while (block_self != self->root || block_other != other->root) {
-//        Block * block;
-//        if (block_self == self->root) {
-//            block = malloc(sizeof(Block));
-//            memcpy(block->bits, block_other->bits, sizeof(block_other->bits));
-//            block->offset = block_other->offset;
-//
-//            block_self->next = block;
-//            block->prev = block_self;
-//
-//            block_other = block_other->next;
-//
-//        } else if (block_other == other->root) {
-//            block->offset = block_self->offset;
-//            memcpy(block->bits, block_self->bits, sizeof(block_other->bits));
-//            block_self = block_self->next;
-//        } else if (block_self->offset == block_other->offset) {
-//            unsigned long words[WORDS_PER_BLOCK] = {0};
-//            for (int i = 0; i < WORDS_PER_BLOCK; i++) {
-//                words[i] = block_self->bits[i] | block_other->bits[i];
-//            }
-//            memcpy(block->bits, words, sizeof(words));
-//            block->offset = block_self->offset;
-//
-//            block_self = block_self->next;
-//            block_other = block_other->next;
-//        } else if (block_self->offset > block_other->offset) {
-//            block->offset = block_other->offset;
-//            memcpy(block->bits, block_other->bits, sizeof(block_other->bits));
-//            block_other = block_other->next;
-//        } else if (block_self->offset < block_other->offset) {
-//            block->offset = block_self->offset;
-//            memcpy(block->bits, block_self->bits, sizeof(block_other));
-//            block_self = block_self->next;
-//        }
-//
-//        block->prev = result_block;
-//        result_block->next = block;
-//
-//        result_block = block;
-//    }
-//    result_block->next = result_set->root;
-//    result_set->root->prev = result_block;
-//    return result_set;
 }
 
 IntSet *intset_or(IntSet *self, IntSet *other) {
@@ -418,7 +401,7 @@ IntSet *intset_or(IntSet *self, IntSet *other) {
             memcpy(block->bits, block_self->bits, sizeof(block_other->bits));
             block_self = block_self->next;
         } else if (block_self->offset == block_other->offset) {
-            unsigned long words[WORDS_PER_BLOCK] = {0};
+            uint64_t words[WORDS_PER_BLOCK] = {0};
             for (int i = 0; i < WORDS_PER_BLOCK; i++) {
                 words[i] = block_self->bits[i] | block_other->bits[i];
             }
@@ -466,10 +449,10 @@ IntSet *intset_sub(IntSet *self, IntSet *other) {
             continue;
         } else {
             block->offset = block_self->offset;
-            unsigned long words[WORDS_PER_BLOCK] = {0};
+            uint64_t words[WORDS_PER_BLOCK] = {0};
             int is_empty = 1;
             for (int i = 0; i < WORDS_PER_BLOCK; i++) {
-                unsigned long word = block_self->bits[i] & ~block_other->bits[i];
+                uint64_t word = block_self->bits[i] & ~block_other->bits[i];
                 if (word != 0)is_empty = 0;
                 words[i] = word;
             }
@@ -514,18 +497,18 @@ IntSet * intset_xor(IntSet * self, IntSet * other){
             block_self = block_self->next;
         } else if (block_self->offset == block_other->offset) {
             block->offset = block_self->offset;
-            unsigned long words[WORDS_PER_BLOCK] = {0};
+            uint64_t words[WORDS_PER_BLOCK] = {0};
             int is_empty = 1;
             for (int i = 0; i < WORDS_PER_BLOCK; i++) {
-                unsigned long word = block_self->bits[i] ^ block_other->bits[i];
+                uint64_t word = block_self->bits[i] ^ block_other->bits[i];
                 if(word!=0)is_empty=0;
                 words[i] = word;
             }
             block_self = block_self->next;
             block_other = block_other->next;
             if(is_empty==1){
-                continue;
                 free(block);
+                continue;
             }
             memcpy(block->bits, words, sizeof(words));
        } else if (block_self->offset > block_other->offset) {
@@ -646,3 +629,4 @@ IntSetIter *intset_iter(IntSet *set) {
     iter->current_index = 0;
     return iter;
 }
+

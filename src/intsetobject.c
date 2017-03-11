@@ -10,10 +10,9 @@ typedef struct{
 }IterObject;
 
 static PyObject * iter_iternext(IterObject *iter_obj){
-    long val = 0;
     int stopped = 0;
 
-    intsetiter_next(iter_obj->iter, &val, &stopped);
+    long val = intsetiter_next(iter_obj->iter, &stopped);
     if(stopped==1){
         return NULL;
     }else{
@@ -106,34 +105,58 @@ static PyObject* set_new(PyTypeObject *type, PyObject *args, PyObject *kwds){
     return make_new_set(type, NULL);
 };
 
-static int intset_update_internal(IntSet * intset, PyObject * iterable){
-
-    PyObject * it, *key;
-    it = PyObject_GetIter(iterable);
-
-    if(it == NULL)return -1;
-
-    while((key = PyIter_Next(it)) != NULL){
-        long x = PyInt_AsLong(key);
-        intset_add(intset, x);
-        Py_DECREF(key);
-    }
-    Py_DECREF(it);
-    if (PyErr_Occurred())return -1;
+static int set_update_internal(IntSetObject * set_obj, PyObject * other){
+	set_obj->intset = intset_new();
+	PyObject * it , *key;
+	it =  PyObject_GetIter(other);
+	if(it == NULL)return -1;
+	while((key = PyIter_Next(it))!= NULL){
+		long x = PyInt_AsLong(key);
+		intset_add(set_obj->intset, x);
+		Py_DECREF(key);
+	}
+	Py_DECREF(it);
+	if(PyErr_Occurred())return -1;
     return 0;
 };
+
+
+//static int set_update_internal(IntSetObject * set_obj, PyObject * other){
+//	if(IntSet_Check(other)){
+//		set_obj->intset = intset_copy(((IntSetObject *)other)->intset);
+//		return 0;
+//	}
+//	if(!PySequence_Check(other)){
+//		return -1;
+//	}
+//	PyObject * keys = PySequence_List(other);
+//    if(keys == NULL)return -1;
+//	int num = PyList_Size(keys);
+//	long data[num];
+//	for(int i=0;i<num;i++){
+//		PyObject * key = PyList_GetItem(keys, i);
+//        long x = PyInt_AsLong(key);
+//        Py_DECREF(key);
+//		data[i] = x;
+//    }
+//    Py_DECREF(keys);
+//	IntSet * set = intset_new();
+//	intset_add_array(set, data, num);
+//	set_obj->intset = set;
+//    if (PyErr_Occurred())return -1;
+//    return 0;
+//};
 
 
 static int set_init(IntSetObject * set_obj, PyObject *args, PyObject *kwds){
     PyObject *iterable = NULL;
     if(!_PyArg_NoKeywords("IntSet()", kwds))return -1;
     if(!PyArg_UnpackTuple(args, Py_TYPE(set_obj)->tp_name, 0, 1, &iterable))return -1;
-
-    set_obj->intset = malloc(sizeof(IntSet));
-    set_obj->intset->root = NULL;
-
-    if(iterable == NULL)return 0;
-    return intset_update_internal(set_obj->intset, iterable);
+	if(iterable == NULL){
+		set_obj->intset = intset_new();
+		return 0;
+	}
+    return set_update_internal(set_obj, iterable);
 };
 
 
@@ -169,18 +192,26 @@ static PyObject* set_repr(IntSetObject * set_obj){
 done:
     Py_ReprLeave((PyObject*)set_obj);
     return result;
-
 }
 
 
 static PyObject* set_add(IntSetObject *set_obj, PyObject *obj){
+	if(!PyInt_Check(obj) && !PyLong_Check(obj)){
+        PyErr_Format(PyExc_TypeError, "%s", Py_TYPE(obj)->tp_name);
+        PyErr_Occurred();
+        return  NULL;
+	}
     long x = PyInt_AsLong(obj);
     intset_add(set_obj->intset, x);
     Py_RETURN_NONE;
 }
 
 static PyObject* set_remove(IntSetObject *set_obj, PyObject *obj){
-
+	if(!PyInt_Check(obj) && !PyLong_Check(obj)){
+        PyErr_Format(PyExc_TypeError, "%s", Py_TYPE(obj)->tp_name);
+        PyErr_Occurred();
+        return  NULL;
+	}
     long x = PyInt_AsLong(obj);
     int r = intset_remove(set_obj->intset, x);
     if(r==0){
@@ -193,6 +224,12 @@ static PyObject* set_remove(IntSetObject *set_obj, PyObject *obj){
 
 static PyObject* set_discard(IntSetObject *set_obj, PyObject *obj){
 
+ 	if(!PyInt_Check(obj) && !PyLong_Check(obj)){
+        PyErr_Format(PyExc_TypeError, "%s", Py_TYPE(obj)->tp_name);
+        PyErr_Occurred();
+        return  NULL;
+	}
+
     long x = PyInt_AsLong(obj);
     intset_remove(set_obj->intset, x);
     Py_RETURN_NONE;
@@ -203,8 +240,13 @@ static Py_ssize_t set_len(PyObject *set_obj){
     return (Py_ssize_t)r;
 }
 
-static int set_contains(IntSetObject *set_obj, PyObject * key){
-    return intset_has(set_obj->intset, PyInt_AsLong(key));
+static int set_contains(IntSetObject *set_obj, PyObject * obj){
+ 	if(!PyInt_Check(obj) && !PyLong_Check(obj)){
+        PyErr_Format(PyExc_TypeError, "%s", Py_TYPE(obj)->tp_name);
+        PyErr_Occurred();
+        return  -1;
+	}
+    return intset_has(set_obj->intset, PyInt_AsLong(obj));
 }
 
 
@@ -231,12 +273,87 @@ static PyObject * set_min(IntSetObject * set_obj){
 	return PyInt_FromLong(result);
 }
 
+static PyObject * set_or(IntSetObject *set_obj, PyObject * other){
+    IntSet* s = intset_or(set_obj->intset, ((IntSetObject *)other)->intset);
+    return make_new_set(Py_TYPE(set_obj), s);
+}
+
+static PyObject * set_and(IntSetObject *set_obj, PyObject * other){
+    IntSet* s = intset_and(set_obj->intset, ((IntSetObject *)other)->intset);
+    return make_new_set(Py_TYPE(set_obj), s);
+}
+
+static PyObject * set_sub(IntSetObject *set_obj, PyObject * other){
+    IntSet* s = intset_sub(set_obj->intset, ((IntSetObject *)other)->intset);
+    return make_new_set(Py_TYPE(set_obj), s);
+}
+
+static PyObject * set_xor(IntSetObject *set_obj, PyObject * other){
+    IntSet* s = intset_xor(set_obj->intset, ((IntSetObject *)other)->intset);
+    return make_new_set(Py_TYPE(set_obj), s);
+}
+
+static PyObject * set_union(IntSetObject *set_obj, PyObject * other){
+	if(!IntSet_Check(other)){
+		PyErr_Format(PyExc_TypeError, "args must be IntSet type");
+		PyErr_Occurred();
+        return NULL;
+	}
+    IntSet* s = intset_or(set_obj->intset, ((IntSetObject *)other)->intset);
+    return make_new_set(Py_TYPE(set_obj), s);
+}
+
+static PyObject * set_update(IntSetObject *set_obj, PyObject * other){
+	Py_RETURN_NONE;
+}
+
+static PyObject * set_intersection(IntSetObject *set_obj, PyObject * other){
+	if(!IntSet_Check(other)){
+		PyErr_Format(PyExc_TypeError, "args must be IntSet type");
+		PyErr_Occurred();
+        return NULL;
+	}
+    IntSet* s = intset_and(set_obj->intset, ((IntSetObject *)other)->intset);
+    return make_new_set(Py_TYPE(set_obj), s);
+}
+
+
+static PyObject * set_intersection_update(IntSetObject * set_obj, PyObject *other){
+	Py_RETURN_NONE;
+}
+
+static PyObject * set_difference(IntSetObject *set_obj, PyObject * other){
+	if(!IntSet_Check(other)){
+		PyErr_Format(PyExc_TypeError, "args must be IntSet type");
+		PyErr_Occurred();
+        return NULL;
+	}
+    IntSet* s = intset_sub(set_obj->intset, ((IntSetObject *)other)->intset);
+    return make_new_set(Py_TYPE(set_obj), s);
+}
+
+static PyObject * set_difference_update(IntSetObject *set_obj, PyObject * other){
+	Py_RETURN_NONE;
+}
+
+static PyObject * set_symmetric_difference(IntSetObject *set_obj, PyObject * other){
+	if(!IntSet_Check(other)){
+		PyErr_Format(PyExc_TypeError, "args must be IntSet type");
+		PyErr_Occurred();
+        return NULL;
+	}
+    IntSet* s = intset_xor(set_obj->intset, ((IntSetObject *)other)->intset);
+    return make_new_set(Py_TYPE(set_obj), s);
+}
+
+static PyObject * set_symmetric_difference_update(IntSetObject *set_obj, PyObject * other){
+	Py_RETURN_NONE;
+}
 
 static PyObject * set_clear(IntSetObject * set_obj){
 	intset_clear(set_obj->intset);
 	Py_RETURN_NONE;
 }
-
 
 static PyObject * set_copy(IntSetObject * set_obj){
     IntSet * set = intset_copy(set_obj->intset);
@@ -245,8 +362,10 @@ static PyObject * set_copy(IntSetObject * set_obj){
 
 static PyObject * set_issubset(IntSetObject * set_obj, PyObject * other){
     if(!IntSet_Check(other)){
+        PyErr_Format(PyExc_TypeError, "%s", Py_TYPE(other)->tp_name);
+        PyErr_Occurred();
         Py_INCREF(Py_NotImplemented);
-        return Py_NotImplemented;
+        return NULL;
     }
     int r = intset_issubset(set_obj->intset, ((IntSetObject *)other)->intset);
     if(r){
@@ -258,8 +377,10 @@ static PyObject * set_issubset(IntSetObject * set_obj, PyObject * other){
 
 static PyObject * set_issuperset(IntSetObject * set_obj, PyObject * other){
     if(!IntSet_Check(other)){
+        PyErr_Format(PyExc_TypeError, "%s", Py_TYPE(other)->tp_name);
+        PyErr_Occurred();
         Py_INCREF(Py_NotImplemented);
-        return Py_NotImplemented;
+        return NULL;
     }
     int r = intset_issuperset(set_obj->intset, ((IntSetObject *)other)->intset);
     if(r){
@@ -270,28 +391,35 @@ static PyObject * set_issuperset(IntSetObject * set_obj, PyObject * other){
 }
 
 
-static PyObject * set_direct_contains(IntSetObject * set_obj, PyObject *key){
-    long result;
-    result = set_contains(set_obj, key);
+static PyObject * set_direct_contains(IntSetObject * set_obj, PyObject *obj){
+	if(!PyInt_Check(obj) && !PyLong_Check(obj)){
+        PyErr_Format(PyExc_TypeError, "%s", Py_TYPE(obj)->tp_name);
+        PyErr_Occurred();
+        return  NULL;
+	}
+    long result = set_contains(set_obj, obj);
     if(result==0)return NULL;
     return PyBool_FromLong(result);
 }
 
 
-static PyObject * set_richcompare(IntSetObject *set_obj, IntSetObject *other, int op){
-    if(!IntSet_Check(other)){
-        Py_INCREF(Py_NotImplemented);
-        return Py_NotImplemented;
+static PyObject * set_richcompare(IntSetObject *set_obj, PyObject *obj, int op){
+    if(!IntSet_Check(obj)){
+        PyErr_Format(PyExc_TypeError, "%s", Py_TYPE(obj)->tp_name);
+        PyErr_Occurred();
+        return NULL;
     }
+
+	IntSetObject * other = (IntSetObject *)obj;
 	switch(op){
 		case Py_EQ:
             if(intset_equals(set_obj->intset, other->intset)){
-                 return Py_True;
+                return Py_True;
             }
 			return Py_False;
 		case Py_NE:
            if(!intset_equals(set_obj->intset, other->intset)){
-                     return Py_True;
+				 return Py_True;
             }
 			return Py_False;
 		case Py_LE:
@@ -315,46 +443,32 @@ static PyObject * set_richcompare(IntSetObject *set_obj, IntSetObject *other, in
                 return Py_True;
 			return Py_False;
 	}
-    Py_INCREF(Py_NotImplemented);
-	return Py_NotImplemented;
+	PyErr_Format(PyExc_TypeError, "not support action");
+	PyErr_Occurred();
+	return NULL;
 }
 
 static PyMethodDef set_methods[] = {
     {"add", (PyCFunction)set_add, METH_O, "intset add"},
     {"remove", (PyCFunction)set_remove, METH_O, "intset remove"},
     {"discard", (PyCFunction)set_discard, METH_O, "intset discard"},
-	{"max", (PyCFunction)set_max, METH_NOARGS, "intset max"},
-	{"min", (PyCFunction)set_min, METH_NOARGS, "intset min"},
-	{"clear", (PyCFunction)set_clear, METH_NOARGS, "intset clear"},
+    {"max", (PyCFunction)set_max, METH_NOARGS, "intset max"},
+    {"min", (PyCFunction)set_min, METH_NOARGS, "intset min"},
+    {"clear", (PyCFunction)set_clear, METH_NOARGS, "intset clear"},
     {"copy", (PyCFunction)set_copy, METH_NOARGS, "intset copy"},
     {"issubset", (PyCFunction)set_issubset, METH_O, "intset issubset"},
     {"issuperset", (PyCFunction)set_issuperset, METH_O, "intset issuperset"},
+    {"intersection", (PyCFunction)set_intersection, METH_O, "intset intersection"},
+    {"intersection_update", (PyCFunction)set_intersection_update, METH_O, "intset intersection_update"},
+    {"difference", (PyCFunction)set_difference, METH_O, "intset difference"},
+    {"difference_update", (PyCFunction)set_difference_update, METH_O, "intset difference_update"},
+    {"union", (PyCFunction)set_union, METH_O, "intset union"},
+    {"update", (PyCFunction)set_update, METH_O, "intset update"},
+    {"symmetric_difference", (PyCFunction)set_symmetric_difference, METH_O, "intset symmetric_difference"},
+    {"symmetric_difference_update", (PyCFunction)set_symmetric_difference_update, METH_O, "intset symmetric_difference_update"},
     {"__contains__",(PyCFunction)set_direct_contains, METH_O , "intset __contains__"},
     {NULL}
 };
-
-
-static PyObject * set_or(IntSetObject *set_obj, IntSetObject * other){
-    IntSet* s = intset_or(set_obj->intset, other->intset);
-    return make_new_set(Py_TYPE(set_obj), s);
-}
-
-static PyObject * set_and(IntSetObject *set_obj, IntSetObject * other){
-    IntSet* s = intset_and(set_obj->intset, other->intset);
-    return make_new_set(Py_TYPE(set_obj), s);
-}
-
-static PyObject * set_sub(IntSetObject *set_obj, IntSetObject * other){
-    IntSet* s = intset_sub(set_obj->intset, other->intset);
-    return make_new_set(Py_TYPE(set_obj), s);
-}
-
-static PyObject * set_xor(IntSetObject *set_obj, IntSetObject * other){
-    IntSet* s = intset_xor(set_obj->intset, other->intset);
-    return make_new_set(Py_TYPE(set_obj), s);
-}
-
-
 static PyNumberMethods set_as_number = {
 	0,                                  /*nb_add*/
     (binaryfunc)set_sub,                /*nb_subtract*/

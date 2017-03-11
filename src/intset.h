@@ -11,7 +11,7 @@ static const int WORDS_PER_BLOCK = (BIT_PER_BLOCK / BITS_PER_WORD);
 
 typedef struct B {
     long offset;
-    unsigned long bits[WORDS_PER_BLOCK];
+    uint64_t bits[WORDS_PER_BLOCK];
     struct B *prev;
     struct B *next;
 
@@ -25,11 +25,13 @@ typedef struct {
 typedef struct{
     IntSet * set;
     Block * current_block;
-    unsigned int current_index;
+    int current_index;
 
 }IntSetIter;
 
 IntSet* intset_copy(IntSet *set);
+IntSet* intset_new();
+void intset_add_array(IntSet *set, long* xs, int num);
 
 int intset_add(IntSet *set, long x);
 int intset_remove(IntSet *set, long x);
@@ -49,7 +51,7 @@ void intset_merge(IntSet *self, IntSet *other);
 
 IntSetIter * intset_iter(IntSet * set);
 
-void intsetiter_next(IntSetIter *iter, long *val, int *stopped);
+long intsetiter_next(IntSetIter *iter, int *stopped);
 
 int intset_issubset(IntSet * set1, IntSet *set2);
 int intset_issuperset(IntSet *set1, IntSet *set2);
