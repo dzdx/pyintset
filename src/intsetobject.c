@@ -122,19 +122,26 @@ IntSet* get_intset_from_obj(PyObject *obj){
 	}else if(PyDict_Check(obj)){
 		count = PyDict_Size(obj);
 	}
-	long data[count];
+	int buffer_size = 1024;
+	long buffer[buffer_size];
 	PyObject * it , *key;
 	it =  PyObject_GetIter(obj);
 	IntSet * intset = intset_new();
 	if(it == NULL)return intset;
-	for(int i=0;(key = PyIter_Next(it))!= NULL&&i < count;i++){
-		long x = PyInt_AsLong(key);
-		data[i] = x;
-		Py_DECREF(key);
+	while(count > 0){
+		for(int i=0;i < buffer_size && (key = PyIter_Next(it))!= NULL;i++){
+			long x = PyInt_AsLong(key);
+			buffer[i] = x;
+			Py_DECREF(key);
+		}
+		if(count < buffer_size){
+			intset_add_array(intset, buffer, count);
+		}else{
+			intset_add_array(intset, buffer, buffer_size);
+		}
+		count -= buffer_size;
 	}
 	Py_DECREF(it);
-
-	intset_add_array(intset, data, count);
 	return intset;
 };
 
@@ -155,10 +162,9 @@ static int set_init(IntSetObject * set_obj, PyObject *args, PyObject *kwds){
 		set_obj->intset = get_intset_from_obj(iterable);
 		return 0;
 	}
-	set_obj->intset = intset_new();
 	PyErr_Format(PyExc_TypeError, "args type %s is not support", Py_TYPE(iterable)->tp_name);
-	PyErr_Occurred();
-    return 0;
+    Py_INCREF(set_obj);
+    return -1;
 };
 
 
@@ -171,7 +177,7 @@ static PyObject * set_iter(IntSetObject *set_obj){
 
 
 static PyObject* set_repr(IntSetObject * set_obj){
-  PyObject *keys, *result=NULL, *listrepr;
+  PyObject *keys, *result=NULL;
     int status = Py_ReprEnter((PyObject*)set_obj);
 
     if (status != 0) {
@@ -183,14 +189,14 @@ static PyObject* set_repr(IntSetObject * set_obj){
     keys = PySequence_List((PyObject *)set_obj);
     if (keys == NULL)
         goto done;
-    listrepr = PyObject_Repr(keys);
-    Py_DECREF(keys);
-    if (listrepr == NULL)
-        goto done;
+	PyObject * listrepr = PyObject_Repr(keys);
+	Py_DECREF(keys);
+	if (listrepr == NULL)
+		goto done;
 
-    result = PyString_FromFormat("%s(%s)", set_obj->ob_type->tp_name,
-        PyString_AS_STRING(listrepr));
-    Py_DECREF(listrepr);
+	result = PyString_FromFormat("%s(%s)", set_obj->ob_type->tp_name,
+		PyString_AS_STRING(listrepr));
+	Py_DECREF(listrepr);
 done:
     Py_ReprLeave((PyObject*)set_obj);
     return result;
@@ -200,7 +206,6 @@ done:
 static PyObject* set_add(IntSetObject *set_obj, PyObject *obj){
 	if(!PyInt_Check(obj) && !PyLong_Check(obj)){
         PyErr_Format(PyExc_TypeError, "%s", Py_TYPE(obj)->tp_name);
-        PyErr_Occurred();
         return  NULL;
 	}
     long x = PyInt_AsLong(obj);
@@ -211,14 +216,12 @@ static PyObject* set_add(IntSetObject *set_obj, PyObject *obj){
 static PyObject* set_remove(IntSetObject *set_obj, PyObject *obj){
 	if(!PyInt_Check(obj) && !PyLong_Check(obj)){
         PyErr_Format(PyExc_TypeError, "%s", Py_TYPE(obj)->tp_name);
-        PyErr_Occurred();
         return  NULL;
 	}
     long x = PyInt_AsLong(obj);
     int r = intset_remove(set_obj->intset, x);
     if(r==0){
         PyErr_Format(PyExc_KeyError, "%ld", x);
-        PyErr_Occurred();
         return  NULL;
     }
     Py_RETURN_NONE;
@@ -228,7 +231,6 @@ static PyObject* set_discard(IntSetObject *set_obj, PyObject *obj){
 
  	if(!PyInt_Check(obj) && !PyLong_Check(obj)){
         PyErr_Format(PyExc_TypeError, "%s", Py_TYPE(obj)->tp_name);
-        PyErr_Occurred();
         return  NULL;
 	}
 
@@ -245,12 +247,26 @@ static Py_ssize_t set_len(PyObject *set_obj){
 static int set_contains(IntSetObject *set_obj, PyObject * obj){
  	if(!PyInt_Check(obj) && !PyLong_Check(obj)){
         PyErr_Format(PyExc_TypeError, "%s", Py_TYPE(obj)->tp_name);
-        PyErr_Occurred();
         return  -1;
 	}
     return intset_has(set_obj->intset, PyInt_AsLong(obj));
 }
 
+
+static PyObject* set_get_slice(IntSetObject * set_obj, Py_ssize_t ilow, Py_ssize_t ihight){
+	IntSet * intset = intset_get_slice(set_obj->intset, ilow, ihight);
+	return make_new_set(Py_TYPE(set_obj), intset);
+}
+
+static PyObject* set_get_item(IntSetObject * set_obj, Py_ssize_t i){
+	int error;
+	long r = intset_get_item(set_obj->intset, i, &error);
+	if(error!=0){
+		PyErr_Format(PyExc_KeyError, "%ld", i);
+		return NULL;
+	}
+	return PyInt_FromLong(r);
+}
 
 
 static PyObject * set_max(IntSetObject * set_obj){
@@ -258,7 +274,6 @@ static PyObject * set_max(IntSetObject * set_obj){
 	long result = intset_max(set_obj->intset, &error);
 	if(error){
 		PyErr_Format(PyExc_ValueError, "intset is empty");
-		PyErr_Occurred();
 		return NULL;
 	}
 	return PyInt_FromLong(result);
@@ -269,7 +284,6 @@ static PyObject * set_min(IntSetObject * set_obj){
 	long result = intset_min(set_obj->intset, &error);
 	if(error!=0){
 		PyErr_Format(PyExc_ValueError, "intset is empty");
-		PyErr_Occurred();
 		return NULL;
 	}
 	return PyInt_FromLong(result);
@@ -307,8 +321,7 @@ static PyObject * set_union(IntSetObject *set_obj, PyObject * other){
 		return make_new_set(Py_TYPE(set_obj), rs);
 	}
 	PyErr_Format(PyExc_TypeError, "args type %s is not support", Py_TYPE(other)->tp_name);
-	PyErr_Occurred();
-	Py_RETURN_NONE;
+	return NULL;
 }
 
 static PyObject * set_update(IntSetObject *set_obj, PyObject * other){
@@ -323,8 +336,7 @@ static PyObject * set_update(IntSetObject *set_obj, PyObject * other){
 		Py_RETURN_NONE;
 	}
 	PyErr_Format(PyExc_TypeError, "args type %s is not support", Py_TYPE(other)->tp_name);
-	PyErr_Occurred();
-	Py_RETURN_NONE;
+	return NULL;
 }
 
 static PyObject * set_intersection(IntSetObject *set_obj, PyObject * other){
@@ -339,8 +351,7 @@ static PyObject * set_intersection(IntSetObject *set_obj, PyObject * other){
 		return make_new_set(Py_TYPE(set_obj), rs);
 	}
 	PyErr_Format(PyExc_TypeError, "args type %s is not support", Py_TYPE(other)->tp_name);
-	PyErr_Occurred();
-	Py_RETURN_NONE;
+	return NULL;
 }
 
 
@@ -362,8 +373,7 @@ static PyObject * set_intersection_update(IntSetObject * set_obj, PyObject *othe
 		Py_RETURN_NONE;
 	}
 	PyErr_Format(PyExc_TypeError, "args type %s is not support", Py_TYPE(other)->tp_name);
-	PyErr_Occurred();
-	Py_RETURN_NONE;
+	return NULL;
 }
 
 static PyObject * set_difference(IntSetObject *set_obj, PyObject * other){
@@ -378,8 +388,7 @@ static PyObject * set_difference(IntSetObject *set_obj, PyObject * other){
 		return make_new_set(Py_TYPE(set_obj), rs);
 	}
 	PyErr_Format(PyExc_TypeError, "args type %s is not support", Py_TYPE(other)->tp_name);
-	PyErr_Occurred();
-	Py_RETURN_NONE;
+	return NULL;
 }
 
 static PyObject * set_difference_update(IntSetObject *set_obj, PyObject * other){
@@ -400,8 +409,7 @@ static PyObject * set_difference_update(IntSetObject *set_obj, PyObject * other)
 		Py_RETURN_NONE;
 	}
 	PyErr_Format(PyExc_TypeError, "args type %s is not support", Py_TYPE(other)->tp_name);
-	PyErr_Occurred();
-	Py_RETURN_NONE;
+	return NULL;
 }
 
 static PyObject * set_symmetric_difference(IntSetObject *set_obj, PyObject * other){
@@ -416,8 +424,7 @@ static PyObject * set_symmetric_difference(IntSetObject *set_obj, PyObject * oth
 		return make_new_set(Py_TYPE(set_obj), rs);
 	}
 	PyErr_Format(PyExc_TypeError, "args type %s is not support", Py_TYPE(other)->tp_name);
-	PyErr_Occurred();
-	Py_RETURN_NONE;
+	return NULL;
 }
 
 static PyObject * set_symmetric_difference_update(IntSetObject *set_obj, PyObject * other){
@@ -438,8 +445,7 @@ static PyObject * set_symmetric_difference_update(IntSetObject *set_obj, PyObjec
 		Py_RETURN_NONE;
 	}
 	PyErr_Format(PyExc_TypeError, "args type %s is not support", Py_TYPE(other)->tp_name);
-	PyErr_Occurred();
-	Py_RETURN_NONE;
+	return NULL;
 }
 
 static PyObject * set_clear(IntSetObject * set_obj){
@@ -455,8 +461,6 @@ static PyObject * set_copy(IntSetObject * set_obj){
 static PyObject * set_issubset(IntSetObject * set_obj, PyObject * other){
     if(!IntSetObj_Check(other)){
         PyErr_Format(PyExc_TypeError, "%s", Py_TYPE(other)->tp_name);
-        PyErr_Occurred();
-        Py_INCREF(Py_NotImplemented);
         return NULL;
     }
     int r = intset_issubset(set_obj->intset, ((IntSetObject *)other)->intset);
@@ -470,8 +474,6 @@ static PyObject * set_issubset(IntSetObject * set_obj, PyObject * other){
 static PyObject * set_issuperset(IntSetObject * set_obj, PyObject * other){
     if(!IntSetObj_Check(other)){
         PyErr_Format(PyExc_TypeError, "%s", Py_TYPE(other)->tp_name);
-        PyErr_Occurred();
-        Py_INCREF(Py_NotImplemented);
         return NULL;
     }
     int r = intset_issuperset(set_obj->intset, ((IntSetObject *)other)->intset);
@@ -486,7 +488,6 @@ static PyObject * set_issuperset(IntSetObject * set_obj, PyObject * other){
 static PyObject * set_direct_contains(IntSetObject * set_obj, PyObject *obj){
 	if(!PyInt_Check(obj) && !PyLong_Check(obj)){
         PyErr_Format(PyExc_TypeError, "%s", Py_TYPE(obj)->tp_name);
-        PyErr_Occurred();
         return  NULL;
 	}
     long result = set_contains(set_obj, obj);
@@ -498,7 +499,6 @@ static PyObject * set_direct_contains(IntSetObject * set_obj, PyObject *obj){
 static PyObject * set_richcompare(IntSetObject *set_obj, PyObject *obj, int op){
     if(!IntSetObj_Check(obj)){
         PyErr_Format(PyExc_TypeError, "%s", Py_TYPE(obj)->tp_name);
-        PyErr_Occurred();
         return NULL;
     }
 
@@ -536,7 +536,6 @@ static PyObject * set_richcompare(IntSetObject *set_obj, PyObject *obj, int op){
 			return Py_False;
 	}
 	PyErr_Format(PyExc_TypeError, "not support action");
-	PyErr_Occurred();
 	return NULL;
 }
 
@@ -603,10 +602,10 @@ static PySequenceMethods set_as_sequence = {
     set_len,                            /* sq_length */
     0,                                  /* sq_concat */
     0,                                  /* sq_repeat */
-    0,                                  /* sq_item */
-    0,                                  /* sq_slice */
+    (ssizeargfunc)set_get_item,                                  /* sq_item */
+    (ssizessizeargfunc)set_get_slice,                                  /* sq_slice */
     0,                                  /* sq_ass_item */
-    0,                                  /* sq_ass_slice */
+    0,   /* sq_ass_slice */
     (objobjproc)set_contains,           /* sq_contains */
 };
 

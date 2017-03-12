@@ -5,8 +5,8 @@
 #endif //INTSET_INTSET_H
 
 static const int BITS_PER_WORD = 64;
-static const int BIT_PER_BLOCK = 256;
-static const int WORDS_PER_BLOCK = (BIT_PER_BLOCK / BITS_PER_WORD);
+static const int BITS_PER_BLOCK = 256;
+static const int WORDS_PER_BLOCK = (BITS_PER_BLOCK / BITS_PER_WORD);
 
 
 typedef struct B {
@@ -52,6 +52,8 @@ void intset_merge(IntSet *self, IntSet *other);
 IntSetIter * intset_iter(IntSet * set);
 
 long intsetiter_next(IntSetIter *iter, int *stopped);
+long intset_get_item(IntSet *set, int index, int * error);
+IntSet* intset_get_slice(IntSet *set, int start, int end);
 
 int intset_issubset(IntSet * set1, IntSet *set2);
 int intset_issuperset(IntSet *set1, IntSet *set2);

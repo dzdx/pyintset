@@ -73,6 +73,15 @@ int block_remove(Block *block, int index) {
     return 0;
 }
 
+Block * block_copy(Block *b){
+	Block * rb = malloc(sizeof(Block));
+	rb->offset = b->offset;
+	memcpy(rb->bits, b->bits, sizeof(b->bits));
+	return rb;
+}
+
+
+
 int block_has(Block *block, int index) {
     int word_offset;
     uint64_t mask;
@@ -85,6 +94,7 @@ int block_has(Block *block, int index) {
 int block_next(Block *block, int index) {
     int word_offset;
     uint64_t mask;
+	index++;
     word_offset_and_mask(index, &word_offset, &mask);
     for (int i = word_offset; i < WORDS_PER_BLOCK; i++) {
         if(block->bits[i]==0){
@@ -149,7 +159,10 @@ int block_is_empty(Block *block) {
 
 
 inline void offset_and_index(long x, long *offset, int *index) {
-    int base = x % BIT_PER_BLOCK;
+    int base = x % BITS_PER_BLOCK;
+	if(base<0){
+		base += BITS_PER_BLOCK;
+	}
     *offset = x - base;
     *index = base;
 }
@@ -164,9 +177,7 @@ IntSet* intset_copy(IntSet *self){
     Block *sb = intset_start(self);
     Block *copied_block = intset_start(copied);
     while(sb!=self->root){
-        Block *block = malloc(sizeof(Block));
-        memcpy(block->bits, sb->bits, sizeof(sb->bits));
-        block->offset = sb->offset;
+		Block * block = block_copy(sb);
         block->prev = copied_block;
 
         copied_block->next = block;
@@ -184,7 +195,6 @@ int intset_insert_after(IntSet *set, long x, Block ** block_ref){
     long offset;
     int index;
     offset_and_index(x, &offset, &index);
-
 
 	Block * block = *block_ref;
 
@@ -319,11 +329,11 @@ long intsetiter_next(IntSetIter *iter, int *stopped) {
         if (index == -1) {
             b = b->next;
             iter->current_block = b;
-            index = 0;
-            iter->current_index = 0;
+            index = -1;
+            iter->current_index = -1;
             continue;
         }
-        iter->current_index = index + 1;
+        iter->current_index = index;
         *stopped = 0;
         return b->offset + index;
     }
@@ -390,9 +400,8 @@ void intset_merge(IntSet *self, IntSet *other){
 			}
 			ob = ob->next;
 		}else if(sb == self->root || sb->offset > ob->offset){
-			Block * b = malloc(sizeof(Block));
-			b->offset = ob->offset;
-			memcpy(b->bits, ob->bits, sizeof(ob->bits));
+
+			Block * b = block_copy(ob);
 
 			b->next = sb;
 			b->prev = sb->prev;
@@ -594,6 +603,120 @@ int intset_issubset(IntSet *self, IntSet *other){
     return 1;
 }
 
+
+Block * block_get_slice(Block *b, int start, int end){
+	Block * rb = malloc(sizeof(Block));
+	rb->offset = b->offset;
+	int start_bit = start/BITS_PER_WORD;
+	int end_bit = end/BITS_PER_WORD;
+	for(int i=0;i<WORDS_PER_BLOCK;i++){
+		if(i<start_bit || i> end_bit){
+			rb->bits[i] = 0;
+		}else if(i==start_bit&&i!=end_bit){
+			rb->bits[i] = b->bits[i] & ~(((uint64_t)1<<(start-i*BITS_PER_WORD))-1);
+		}else if(i== end_bit && i!=start_bit){
+			rb->bits[i] = b->bits[i] & (((uint64_t)1<<(end-i*BITS_PER_WORD))-1);
+		}else if(i==end_bit && i==start_bit){
+			rb->bits[i] = b->bits[i] & ~(((uint64_t)1<<(start-i*BITS_PER_WORD))-1) & (((uint64_t)1<<(end-i*BITS_PER_WORD))-1);
+		}else if(start_bit < i && i < end_bit){
+			rb->bits[i] = b->bits[i];
+		}
+	}
+	return rb;
+}
+
+
+IntSet* intset_get_slice(IntSet *self, int start, int end){
+	IntSet * rs = intset_new();
+	if(end<=start){
+		return rs;
+	}
+	Block * sb = intset_start(self);
+	Block * rb = intset_start(rs);
+	int sum = 0;
+	while(sb!=self->root && sum < end){
+		int len = block_size(sb);
+		int sum_next = sum + len;
+		if(sum_next > start && start >= sum && sum_next > end && end >= sum){
+			int index = -1;
+			for(int i=0;i<=start-sum;i++){
+				index = block_next(sb, index);
+			}
+			int si=index;
+			for(int i=start+1;i<=end;i++){
+				index = block_next(sb, index);
+			}
+			int ei = index;
+			Block * new_block = block_get_slice(sb, si, ei);
+			new_block->prev = rb;
+			new_block->next = rb->next;
+
+			rb->next = new_block;
+			rb = new_block;
+		}else if(sum_next > start && start >= sum){
+			int index = -1;
+			for(int i=0;i<=start-sum;i++){
+				index = block_next(sb, index);
+			}
+			int si=index;
+			Block * new_block = block_get_slice(sb, si, BITS_PER_BLOCK);
+			new_block->prev = rb;
+			new_block->next = rb->next;
+
+			rb->next = new_block;
+			rb = new_block;
+		}else if(sum_next > end && end >= sum){
+			int index = -1;
+			for(int i=0;i<=end-sum;i++){
+				index = block_next(sb, index);
+			}
+			int ei=index;
+			Block * new_block = block_get_slice(sb, 0, ei);
+			new_block->prev = rb;
+			new_block->next = rb->next;
+
+			rb->next = new_block;
+			rb=new_block;
+		}else if(start <= sum && sum_next <= end){
+			Block * new_block = block_copy(sb);
+			new_block->prev = rb;
+			new_block->next = rb->next;
+
+			rb->next = new_block;
+			rb=new_block;
+		}
+		sum = sum_next;
+		sb = sb->next;
+	}
+	rs->root->prev = rb;
+	return rs;
+}
+
+
+long intset_get_item(IntSet *set, int index, int * error){
+	*error = 0;
+	Block * b = intset_start(set);
+	int sum = 0;
+	while(b!=set->root){
+		int len = block_size(b);
+		if((sum+len) > index){
+			break;
+		}
+		sum += len;
+		b = b->next;
+	}
+	if(b==set->root){
+		*error = 1;
+		return 0;
+	}else{
+		int result = -1;
+		for(int i=0;i<=index-sum;i++){
+			result = block_next(b, result);
+		}
+		return  b->offset+result;
+	}
+}
+
 void intset_clear(IntSet *set){
     Block * b = set->root->next;
     while(b!=set->root){
@@ -609,7 +732,7 @@ IntSetIter *intset_iter(IntSet *set) {
     IntSetIter *iter = (IntSetIter *) malloc(sizeof(IntSetIter));
     iter->set = set;
     iter->current_block = intset_start(set);
-    iter->current_index = 0;
+    iter->current_index = -1;
     return iter;
 }
 

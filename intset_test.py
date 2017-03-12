@@ -17,6 +17,13 @@ class IntSetTestCase(unittest.TestCase):
         self.assertTrue(list(IntSet(set(range(10))))==range(10))
         self.assertTrue(list(IntSet(xrange(10)))==range(10))
         self.assertTrue(list(IntSet({1:1}))==[1])
+        self.assertRaises(TypeError, lambda :IntSet(1))
+        self.assertRaises(TypeError, lambda: IntSet(object))
+
+    def test_negative_num(self):
+        data = random.sample(xrange(-10000, 0), 20)
+        self.assertTrue(list(IntSet(data))==sorted(data))
+
 
     def test_iter(self):
         data = random.sample(xrange(10000), 2000)
@@ -128,6 +135,7 @@ class IntSetTestCase(unittest.TestCase):
 
         self.assertTrue(list(s1.intersection(IntSet(l2))) == sorted(list(s2.intersection(l2))))
         self.assertTrue(list(s1.intersection(l2)) == sorted(list(s2.intersection(l2))))
+        self.assertRaises(TypeError, s1.intersection, 1)
 
     def test_intersection_update(self):
         l1 = random.sample(xrange(10000), 2000)
@@ -143,6 +151,8 @@ class IntSetTestCase(unittest.TestCase):
         s1.intersection_update(IntSet(l2))
         self.assertTrue(list(s1) == sorted(list(s2)))
 
+        self.assertRaises(TypeError, s1.intersection_update, 1)
+
     def test_difference(self):
         l1 = random.sample(xrange(10000), 2000)
         l2 = random.sample(xrange(10000), 2000)
@@ -152,6 +162,7 @@ class IntSetTestCase(unittest.TestCase):
 
         self.assertTrue(list(s1.difference(IntSet(l2))) == sorted(list(s2.difference(l2))))
         self.assertTrue(list(s1.difference(l2)) == sorted(list(s2.difference(l2))))
+        self.assertRaises(TypeError, s1.difference, 1)
 
     def test_difference_update(self):
         l1 = random.sample(xrange(10000), 2000)
@@ -166,6 +177,7 @@ class IntSetTestCase(unittest.TestCase):
         s1 = IntSet(l1)
         s1.update(IntSet(l2))
         self.assertTrue(list(s1) == sorted(list(s2)))
+        self.assertRaises(TypeError, s1.difference_update, 1)
 
     def test_union(self):
         l1 = random.sample(xrange(10000), 2000)
@@ -176,6 +188,7 @@ class IntSetTestCase(unittest.TestCase):
 
         self.assertTrue(list(s1.union(IntSet(l2))) == sorted(list(s2.union(l2))))
         self.assertTrue(list(s1.union(l2)) == sorted(list(s2.union(l2))))
+        self.assertRaises(TypeError, s1.union, 1)
 
     def test_update(self):
         l1 = random.sample(xrange(10000), 2000)
@@ -195,6 +208,7 @@ class IntSetTestCase(unittest.TestCase):
         s1 = IntSet(l1)
         s1.update(IntSet(l2))
         self.assertTrue(list(s1) == sorted(list(s2)))
+        self.assertRaises(TypeError, s1.update, 1)
 
 
     def test_symmetric_difference(self):
@@ -207,6 +221,7 @@ class IntSetTestCase(unittest.TestCase):
 
         self.assertTrue(list(s1.symmetric_difference(IntSet(l2))) == sorted(list(s2.symmetric_difference(l2))))
         self.assertTrue(list(s1.symmetric_difference(l2)) == sorted(list(s2.symmetric_difference(l2))))
+        self.assertRaises(TypeError, s1.symmetric_difference, 1)
 
     def test_symmetric_difference_update(self):
 
@@ -222,6 +237,7 @@ class IntSetTestCase(unittest.TestCase):
         s1 = IntSet(l1)
         s1.symmetric_difference_update(IntSet(l2))
         self.assertTrue(list(s1) == sorted(list(s2)))
+        self.assertRaises(TypeError, s1.symmetric_difference_update, 1)
 
     def test_issubset(self):
         l1 = random.sample(xrange(10000), 2000)
@@ -251,6 +267,7 @@ class IntSetTestCase(unittest.TestCase):
             s2.remove(x)
         self.assertTrue(list(s1), sorted(s2))
         self.assertRaises(KeyError, s1.remove, 10001)
+        self.assertRaises(TypeError, s1.remove, "1")
 
     def test_discard(self):
         l1 = random.sample(xrange(10000), 2000)
@@ -264,12 +281,35 @@ class IntSetTestCase(unittest.TestCase):
 
         self.assertTrue(list(s1), sorted(s2))
         s1.discard(10001)
+        self.assertRaises(TypeError, s1.discard, "1")
 
     def test_copy(self):
         l1 = random.sample(xrange(10000), 2000)
         s1 = IntSet(l1)
         s2 = s1.copy()
         self.assertEqual(s1, s2)
+
+
+    def test_large_array(self):
+        s1 = IntSet(range(1000000))
+        self.assertEquals(len(s1), 1000000)
+
+    def test_get_slice(self):
+        l1 = sorted(random.sample(xrange(10000), 2000))
+        s = IntSet(l1)
+        self.assertEquals(s[10:100], IntSet(l1[10:100]))
+        self.assertEquals(s[10:300], IntSet(l1[10:300]))
+        self.assertEquals(s[10:1000], IntSet(l1[10:1000]))
+        self.assertEquals(s[10:-10], IntSet(l1[10:-10]))
+        self.assertEquals(s[10:9], IntSet(l1[10:9]))
+
+    def test_get_item(self):
+        l1 = sorted(random.sample(xrange(10000), 2000))
+        s = IntSet(l1)
+        self.assertEquals(s[1000], l1[1000])
+        self.assertEquals(s[-500], l1[-500])
+        self.assertRaises(KeyError, lambda:s[3000])
+
 
 
 if __name__ == '__main__':
