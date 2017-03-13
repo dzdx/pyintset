@@ -22,39 +22,53 @@ typedef struct {
 } IntSet;
 
 
-typedef struct{
-    IntSet * set;
-    Block * current_block;
+typedef struct {
+    IntSet *set;
+    Block *current_block;
     int current_index;
 
-}IntSetIter;
+} IntSetIter;
 
-IntSet* intset_copy(IntSet *set);
-IntSet* intset_new();
-void intset_add_array(IntSet *set, long* xs, int num);
+IntSet *intset_copy(IntSet *set);
+
+IntSet *intset_new();
+
+void intset_add_array(IntSet *set, long *xs, int num);
 
 int intset_add(IntSet *set, long x);
+
 int intset_remove(IntSet *set, long x);
+
 int intset_has(IntSet *set, long x);
+
 void intset_clear(IntSet *set);
 
 int intset_len(IntSet *set);
 
 long intset_max(IntSet *set, int *error);
+
 long intset_min(IntSet *set, int *error);
 
 IntSet *intset_and(IntSet *set_a, IntSet *set_b);
+
 IntSet *intset_or(IntSet *set_a, IntSet *set_b);
+
 IntSet *intset_sub(IntSet *set_a, IntSet *set_b);
+
 IntSet *intset_xor(IntSet *set_a, IntSet *set_b);
+
 void intset_merge(IntSet *self, IntSet *other);
 
-IntSetIter * intset_iter(IntSet * set);
+IntSetIter *intset_iter(IntSet *set);
 
 long intsetiter_next(IntSetIter *iter, int *stopped);
-long intset_get_item(IntSet *set, int index, int * error);
-IntSet* intset_get_slice(IntSet *set, int start, int end);
 
-int intset_issubset(IntSet * set1, IntSet *set2);
+long intset_get_item(IntSet *set, int index, int *error);
+
+IntSet *intset_get_slice(IntSet *set, int start, int end);
+
+int intset_issubset(IntSet *set1, IntSet *set2);
+
 int intset_issuperset(IntSet *set1, IntSet *set2);
-int intset_equals(IntSet * self, IntSet * other);
+
+int intset_equals(IntSet *self, IntSet *other);
