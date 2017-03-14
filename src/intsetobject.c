@@ -6,12 +6,20 @@
 
 
 #define MIN(a,b) (a>b?b:a)
+#define ABS(x) ((x) < 0 ? -(x) : (x))
 
 Number* PyInt_AsNumber(PyObject *obj){
     if(PyInt_Check(obj)){
         return number_from_long(PyInt_AsLong(obj));
+    }else if(PyLong_Check(obj)){
+    //    PyLongObject* long_o = (PyLongObject *)obj;
+    //    int size = Py_SIZE(long_o);
+    //    Number * n = number_new(ABS(size));
+    //    for(int i=0;i<size;i++){
+    //        n->digits[i] = long_o->ob_digit[i];
+    //    }
     }else{
-        return number_from_long(-1);
+        PyErr_Format(PyExc_TypeError, "require int or long");
     }
 }
 

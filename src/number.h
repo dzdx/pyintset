@@ -19,6 +19,7 @@ typedef struct {
 #endif
 
 
+Number *number_new(int size);
 
 void number_dump(Number *x);
 
