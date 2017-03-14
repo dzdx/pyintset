@@ -126,6 +126,12 @@ IntSet *get_intset_from_obj(PyObject *obj) {
     if (it == NULL)return intset;
     while (count > 0) {
         for (int i = 0; i < buffer_size && (key = PyIter_Next(it)) != NULL; i++) {
+            if(!PyInt_Check(key) && !PyLong_Check(key)){
+                Py_DECREF(key);
+                PyErr_Format(PyExc_TypeError, "a Integer is required");
+                Py_DECREF(it);
+                return intset;
+            }
             long x = PyInt_AsLong(key);
             buffer[i] = x;
             Py_DECREF(key);
@@ -155,7 +161,13 @@ static int set_init(IntSetObject *set_obj, PyObject *args, PyObject *kwds) {
         return 0;
     }
     if (Allow_Type_Check(iterable)) {
-        set_obj->intset = get_intset_from_obj(iterable);
+        IntSet *intset = get_intset_from_obj(iterable);
+        if(PyErr_Occurred()){
+            Free_IntSet(intset);
+            Py_INCREF(set_obj);
+            return -1;
+        }
+        set_obj->intset = intset;
         return 0;
     }
     PyErr_Format(PyExc_TypeError, "args type %s is not support", Py_TYPE(iterable)->tp_name);
@@ -312,6 +324,11 @@ static PyObject *set_union(IntSetObject *set_obj, PyObject *other) {
     }
     if (Allow_Type_Check(other)) {
         IntSet *set = get_intset_from_obj(other);
+        if(PyErr_Occurred()){
+            Free_IntSet(set);
+            return NULL;
+        }
+
         IntSet *rs = intset_or(set_obj->intset, set);
         Free_IntSet(set);
         return make_new_set(Py_TYPE(set_obj), rs);
@@ -327,6 +344,11 @@ static PyObject *set_update(IntSetObject *set_obj, PyObject *other) {
     }
     if (Allow_Type_Check(other)) {
         IntSet *intset = get_intset_from_obj(other);
+        if(PyErr_Occurred()){
+            Free_IntSet(intset);
+            return NULL;
+        }
+
         intset_merge(set_obj->intset, intset);
         Free_IntSet(intset)
         Py_RETURN_NONE;
@@ -342,6 +364,10 @@ static PyObject *set_intersection(IntSetObject *set_obj, PyObject *other) {
     }
     if (Allow_Type_Check(other)) {
         IntSet *set = get_intset_from_obj(other);
+        if(PyErr_Occurred()){
+            Free_IntSet(set);
+            return NULL;
+        }
         IntSet *rs = intset_and(set_obj->intset, set);
         Free_IntSet(set);
         return make_new_set(Py_TYPE(set_obj), rs);
@@ -360,6 +386,10 @@ static PyObject *set_intersection_update(IntSetObject *set_obj, PyObject *other)
     }
     if (Allow_Type_Check(other)) {
         IntSet *set = get_intset_from_obj(other);
+        if(PyErr_Occurred()){
+            Free_IntSet(set);
+            return NULL;
+        }
         IntSet *rs = intset_and(set_obj->intset, set);
 
         Free_IntSet(set);
@@ -379,6 +409,11 @@ static PyObject *set_difference(IntSetObject *set_obj, PyObject *other) {
     }
     if (Allow_Type_Check(other)) {
         IntSet *set = get_intset_from_obj(other);
+        if(PyErr_Occurred()){
+            Free_IntSet(set);
+            return NULL;
+        }
+
         IntSet *rs = intset_sub(set_obj->intset, set);
         Free_IntSet(set);
         return make_new_set(Py_TYPE(set_obj), rs);
@@ -396,6 +431,11 @@ static PyObject *set_difference_update(IntSetObject *set_obj, PyObject *other) {
     }
     if (Allow_Type_Check(other)) {
         IntSet *set = get_intset_from_obj(other);
+        if(PyErr_Occurred()){
+            Free_IntSet(set);
+            return NULL;
+        }
+
         IntSet *rs = intset_sub(set_obj->intset, set);
 
         Free_IntSet(set);
@@ -415,6 +455,11 @@ static PyObject *set_symmetric_difference(IntSetObject *set_obj, PyObject *other
     }
     if (Allow_Type_Check(other)) {
         IntSet *set = get_intset_from_obj(other);
+        if(PyErr_Occurred()){
+            Free_IntSet(set);
+            return NULL;
+        }
+
         IntSet *rs = intset_xor(set_obj->intset, set);
         Free_IntSet(set);
         return make_new_set(Py_TYPE(set_obj), rs);
@@ -432,6 +477,11 @@ static PyObject *set_symmetric_difference_update(IntSetObject *set_obj, PyObject
     }
     if (Allow_Type_Check(other)) {
         IntSet *set = get_intset_from_obj(other);
+        if(PyErr_Occurred()){
+            Free_IntSet(set);
+            return NULL;
+        }
+
         IntSet *rs = intset_xor(set_obj->intset, set);
 
         Free_IntSet(set);

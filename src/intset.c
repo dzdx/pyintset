@@ -713,6 +713,9 @@ long intset_get_item(IntSet *set, int index, int *error) {
 }
 
 void intset_clear(IntSet *set) {
+    if(set->root == NULL){
+        return;
+    }
     Block *b = set->root->next;
     while (b != set->root) {
         Block *next = b->next;
