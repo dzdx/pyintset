@@ -11,8 +11,7 @@ class IntSetTestCase(unittest.TestCase):
 
 
     def test_init(self):
-        data = random.sample(xrange(10000), 2000)
-
+        data = random.sample(xrange(10000), 2)
         self.assertTrue(list(IntSet(data))==sorted(data))
         self.assertTrue(list(IntSet(IntSet(data)))==sorted(data))
         self.assertTrue(list(IntSet())==[])
@@ -322,6 +321,8 @@ class IntSetTestCase(unittest.TestCase):
         self.assertEquals(s[-500], l1[-500])
         self.assertRaises(KeyError, lambda:s[3000])
 
+    def test_bigint(self):
+        pass
 
 
 if __name__ == '__main__':

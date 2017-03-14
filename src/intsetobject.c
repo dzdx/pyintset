@@ -2,7 +2,22 @@
 #include "intset.h"
 
 #include <structmember.h>
+#include "number.h"
 
+
+#define MIN(a,b) (a>b?b:a)
+
+Number* PyInt_AsNumber(PyObject *obj){
+    if(PyInt_Check(obj)){
+        return number_from_long(PyInt_AsLong(obj));
+    }else{
+        return number_from_long(-1);
+    }
+}
+
+PyObject* PyInt_FromNumber(Number *obj){
+    return PyInt_FromLong(number_as_long(obj));
+}
 
 typedef struct {
     PyObject_HEAD;
@@ -12,13 +27,16 @@ typedef struct {
 static PyObject *iter_iternext(IterObject *iter_obj) {
     int stopped = 0;
 
-    long val = intsetiter_next(iter_obj->iter, &stopped);
+    Number* val = intsetiter_next(iter_obj->iter, &stopped);
     if (stopped == 1) {
         return NULL;
     } else {
-        return PyInt_FromLong(val);
+        PyObject * r = PyInt_FromNumber(val);
+        number_clear(val);
+        return r;
     }
 }
+
 
 static void iter_dealloc(IterObject *iter_obj) {
     free(iter_obj->iter);
@@ -119,7 +137,7 @@ IntSet *get_intset_from_obj(PyObject *obj) {
         count = PyDict_Size(obj);
     }
     int buffer_size = 1024;
-    long buffer[buffer_size];
+    Number* buffer[buffer_size];
     PyObject *it, *key;
     it = PyObject_GetIter(obj);
     IntSet *intset = intset_new();
@@ -132,7 +150,7 @@ IntSet *get_intset_from_obj(PyObject *obj) {
                 Py_DECREF(it);
                 return intset;
             }
-            long x = PyInt_AsLong(key);
+            Number * x = PyInt_AsNumber(key);
             buffer[i] = x;
             Py_DECREF(key);
         }
@@ -140,6 +158,9 @@ IntSet *get_intset_from_obj(PyObject *obj) {
             intset_add_array(intset, buffer, count);
         } else {
             intset_add_array(intset, buffer, buffer_size);
+        }
+        for(int i=0;i<MIN(count, buffer_size);i++){
+            number_clear(buffer[i]);
         }
         count -= buffer_size;
     }
@@ -163,7 +184,6 @@ static int set_init(IntSetObject *set_obj, PyObject *args, PyObject *kwds) {
     if (Allow_Type_Check(iterable)) {
         IntSet *intset = get_intset_from_obj(iterable);
         if(PyErr_Occurred()){
-            Free_IntSet(intset);
             Py_INCREF(set_obj);
             return -1;
         }
@@ -216,8 +236,9 @@ static PyObject *set_add(IntSetObject *set_obj, PyObject *obj) {
         PyErr_Format(PyExc_TypeError, "%s", Py_TYPE(obj)->tp_name);
         return NULL;
     }
-    long x = PyInt_AsLong(obj);
+    Number *x= PyInt_AsNumber(obj);
     intset_add(set_obj->intset, x);
+    number_clear(x);
     Py_RETURN_NONE;
 }
 
@@ -226,10 +247,11 @@ static PyObject *set_remove(IntSetObject *set_obj, PyObject *obj) {
         PyErr_Format(PyExc_TypeError, "%s", Py_TYPE(obj)->tp_name);
         return NULL;
     }
-    long x = PyInt_AsLong(obj);
+    Number * x = PyInt_AsNumber(obj);
     int r = intset_remove(set_obj->intset, x);
+    number_clear(x);
     if (r == 0) {
-        PyErr_Format(PyExc_KeyError, "%ld", x);
+        PyErr_Format(PyExc_KeyError, "TODO");
         return NULL;
     }
     Py_RETURN_NONE;
@@ -242,8 +264,9 @@ static PyObject *set_discard(IntSetObject *set_obj, PyObject *obj) {
         return NULL;
     }
 
-    long x = PyInt_AsLong(obj);
+    Number * x = PyInt_AsNumber(obj);
     intset_remove(set_obj->intset, x);
+    number_clear(x);
     Py_RETURN_NONE;
 }
 
@@ -257,7 +280,10 @@ static int set_contains(IntSetObject *set_obj, PyObject *obj) {
         PyErr_Format(PyExc_TypeError, "%s", Py_TYPE(obj)->tp_name);
         return -1;
     }
-    return intset_has(set_obj->intset, PyInt_AsLong(obj));
+    Number *x = PyInt_AsNumber(obj);
+    int r =  intset_has(set_obj->intset, x);
+    number_clear(x);
+    return r;
 }
 
 
@@ -268,33 +294,33 @@ static PyObject *set_get_slice(IntSetObject *set_obj, Py_ssize_t ilow, Py_ssize_
 
 static PyObject *set_get_item(IntSetObject *set_obj, Py_ssize_t i) {
     int error;
-    long r = intset_get_item(set_obj->intset, i, &error);
+    Number* x = intset_get_item(set_obj->intset, i, &error);
     if (error != 0) {
         PyErr_Format(PyExc_KeyError, "%ld", i);
         return NULL;
     }
-    return PyInt_FromLong(r);
+    return PyInt_FromNumber(x);
 }
 
 
 static PyObject *set_max(IntSetObject *set_obj) {
     int error;
-    long result = intset_max(set_obj->intset, &error);
+    Number * result = intset_max(set_obj->intset, &error);
     if (error) {
         PyErr_Format(PyExc_ValueError, "intset is empty");
         return NULL;
     }
-    return PyInt_FromLong(result);
+    return PyInt_FromNumber(result);
 }
 
 static PyObject *set_min(IntSetObject *set_obj) {
     int error;
-    long result = intset_min(set_obj->intset, &error);
+    Number* result = intset_min(set_obj->intset, &error);
     if (error != 0) {
         PyErr_Format(PyExc_ValueError, "intset is empty");
         return NULL;
     }
-    return PyInt_FromLong(result);
+    return PyInt_FromNumber(result);
 }
 
 static PyObject *set_or(IntSetObject *set_obj, PyObject *other) {

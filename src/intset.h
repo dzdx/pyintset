@@ -1,16 +1,18 @@
 #ifndef INTSET_INTSET_H
 #define INTSET_INTSET_H
 
-
 #endif //INTSET_INTSET_H
+
+#include "number.h"
 
 static const int BITS_PER_WORD = 64;
 static const int BITS_PER_BLOCK = 256;
 static const int WORDS_PER_BLOCK = (BITS_PER_BLOCK / BITS_PER_WORD);
+static Number* BITS_PER_BLOCK_NUMBER = NULL;
 
 
 typedef struct B {
-    long offset;
+    Number * offset;
     uint64_t bits[WORDS_PER_BLOCK];
     struct B *prev;
     struct B *next;
@@ -33,21 +35,21 @@ IntSet *intset_copy(IntSet *set);
 
 IntSet *intset_new();
 
-void intset_add_array(IntSet *set, long *xs, int num);
+void intset_add_array(IntSet *set, Number **xs, int num);
 
-int intset_add(IntSet *set, long x);
+int intset_add(IntSet *set, Number* x);
 
-int intset_remove(IntSet *set, long x);
+int intset_remove(IntSet *set, Number* x);
 
-int intset_has(IntSet *set, long x);
+int intset_has(IntSet *set, Number* x);
 
 void intset_clear(IntSet *set);
 
 int intset_len(IntSet *set);
 
-long intset_max(IntSet *set, int *error);
+Number* intset_max(IntSet *set, int *error);
 
-long intset_min(IntSet *set, int *error);
+Number* intset_min(IntSet *set, int *error);
 
 IntSet *intset_and(IntSet *set_a, IntSet *set_b);
 
@@ -61,9 +63,9 @@ void intset_merge(IntSet *self, IntSet *other);
 
 IntSetIter *intset_iter(IntSet *set);
 
-long intsetiter_next(IntSetIter *iter, int *stopped);
+Number* intsetiter_next(IntSetIter *iter, int *stopped);
 
-long intset_get_item(IntSet *set, int index, int *error);
+Number* intset_get_item(IntSet *set, int index, int *error);
 
 IntSet *intset_get_slice(IntSet *set, int start, int end);
 

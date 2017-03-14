@@ -4,6 +4,7 @@
 
 
 #include <stdlib.h>
+#include <string.h>
 #include <stdio.h>
 #include <assert.h>
 #include "number.h"
@@ -64,15 +65,18 @@ Number *number_from_long(long l) {
 }
 
 void number_dump(Number *x) {
-    if (x->size < 0) {
-        printf("-");
-    }
-    int size = ABS(x->size);
-    for (int i = size - 1; i >= 0; i--) {
-        printf("%x", x->digits[i]);
-    }
-    printf("\n");
-    return;
+	if(x->size==0){
+		 printf("0");
+	}else{
+		if (x->size < 0) {
+			printf("-");
+		}
+	   int size = ABS(x->size);
+		for (int i = size - 1; i >= 0; i--) {
+			printf("%x", x->digits[i]);
+		}
+	}
+	printf("\n");
 }
 
 Number *x_add(Number *a, Number *b) {
@@ -421,7 +425,7 @@ int number_divmod(Number *a, Number *b, Number **pdiv, Number **prem) {
     return 0;
 }
 
-int number_compare(Number *a, Number *b) {
+int number_cmp(Number *a, Number *b) {
     int sign;
     if (a->size != b->size) {
         sign = a->size - b->size;
@@ -438,4 +442,18 @@ int number_compare(Number *a, Number *b) {
         }
     }
     return sign < 0 ? -1 : sign > 0 ? 1 : 0;
+}
+
+
+Number * number_copy(Number *a){
+	Number *r = number_new(a->size);
+	memcpy(r->digits, a->digits, sizeof(digit)*ABS(a->size));
+	return r;
+}
+
+void number_clear(Number *a) {
+	if((a->size)>0){
+		free(a->digits);
+	}
+    free(a);
 }
