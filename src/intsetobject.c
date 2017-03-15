@@ -1,30 +1,46 @@
 #include <Python.h>
-#include "intset.h"
+#include <longintrepr.h>
 
 #include <structmember.h>
 #include "number.h"
 
 
+#include "intset.h"
+
 #define MIN(a,b) (a>b?b:a)
 #define ABS(x) ((x) < 0 ? -(x) : (x))
 
+#define PyIntOrLong_Check(op)       (PyInt_Check(op) || PyLong_Check(op))
+
 Number* PyInt_AsNumber(PyObject *obj){
+//TODO python digit 类型不确定
     if(PyInt_Check(obj)){
         return number_from_long(PyInt_AsLong(obj));
     }else if(PyLong_Check(obj)){
-    //    PyLongObject* long_o = (PyLongObject *)obj;
-    //    int size = Py_SIZE(long_o);
-    //    Number * n = number_new(ABS(size));
-    //    for(int i=0;i<size;i++){
-    //        n->digits[i] = long_o->ob_digit[i];
-    //    }
+        int size = ABS(Py_SIZE(obj));
+        Number * n = number_new(ABS(size));
+        PyLongObject * v = (PyLongObject *) obj;
+        for(int i=0;i<size;i++){
+            n->digits[i] = v->ob_digit[i];
+        }
+        return n;
     }else{
         PyErr_Format(PyExc_TypeError, "require int or long");
     }
 }
 
 PyObject* PyInt_FromNumber(Number *obj){
-    return PyInt_FromLong(number_as_long(obj));
+    int size = ABS(obj->size);
+    if(size > 2 ){
+        PyLongObject * v = PyObject_NEW_VAR(PyLongObject, &PyLong_Type, size);
+        v->ob_size = obj->size;
+        for(int i=0;i<size;i++){
+            v->ob_digit[i] = obj->digits[i];
+        }
+        return (PyObject *)v;
+    }else{
+        return PyInt_FromLong(number_as_long(obj));
+    }
 }
 
 typedef struct {
@@ -152,7 +168,7 @@ IntSet *get_intset_from_obj(PyObject *obj) {
     if (it == NULL)return intset;
     while (count > 0) {
         for (int i = 0; i < buffer_size && (key = PyIter_Next(it)) != NULL; i++) {
-            if(!PyInt_Check(key) && !PyLong_Check(key)){
+            if(!PyIntOrLong_Check(key)){
                 Py_DECREF(key);
                 PyErr_Format(PyExc_TypeError, "a Integer is required");
                 Py_DECREF(it);

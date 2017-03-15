@@ -4,15 +4,21 @@
 
 #ifndef NUMBER_H
 #define NUMBER_H
-typedef uint16_t digit;
-typedef int16_t sdigit;
-typedef uint32_t twodigits;
-typedef int32_t stwodigits;
+typedef uint32_t d_digit;
+typedef int32_t d_sdigit;
+typedef uint64_t d_twodigits;
+typedef int64_t d_stwodigits;
+
+#define DIGIT_SHIFT 30
+#define DIGIT_BASE ((d_digit)1<<DIGIT_SHIFT)
+
+#define DIGIT_MASK ((d_digit)DIGIT_BASE-1)
+
 
 
 typedef struct {
     int size;
-    digit *digits;
+    d_digit *digits;
 } Number;
 
 

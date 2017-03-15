@@ -12,16 +12,16 @@
 #define ABS(x) ((x) < 0 ? -(x) : (x))
 
 
-#define DIGIT_SHIFT 15
-#define DIGIT_BASE ((digit)1<<DIGIT_SHIFT)
+#define DIGIT_SHIFT 30
+#define DIGIT_BASE ((d_digit)1<<DIGIT_SHIFT)
 
-#define DIGIT_MASK ((digit)DIGIT_BASE-1)
+#define DIGIT_MASK ((d_digit)DIGIT_BASE-1)
 
 
 Number *number_new(int size) {
     Number *n = malloc(sizeof(Number));
     n->size = size;
-    digit *ds = calloc((size_t) ABS(size), sizeof(digit));
+    d_digit *ds = calloc((size_t) ABS(size), sizeof(d_digit));
     n->digits = ds;
     return n;
 }
@@ -57,7 +57,7 @@ Number *number_from_long(long l) {
 
     Number *z = number_new(size);
     for (int i = 0; i < size; i++) {
-        z->digits[i] = (digit) (x & DIGIT_MASK);
+        z->digits[i] = (d_digit) (x & DIGIT_MASK);
         x >>= DIGIT_SHIFT;
     }
     z->size = (l < 0) ? -size : size;
@@ -94,16 +94,16 @@ Number *x_add(Number *a, Number *b) {
     }
     Number *z = number_new(size_a + 1);
 
-    digit carry = 0;
+    d_digit carry = 0;
     int i;
     for (i = 0; i < size_b; i++) {
         carry += a->digits[i] + b->digits[i];
-        z->digits[i] = (digit) (carry & DIGIT_MASK);
+        z->digits[i] = (d_digit) (carry & DIGIT_MASK);
         carry >>= DIGIT_SHIFT;
     }
     for (; i < size_a; i++) {
         carry += a->digits[i];
-        z->digits[i] = (digit) (carry & DIGIT_MASK);
+        z->digits[i] = (d_digit) (carry & DIGIT_MASK);
         carry >>= DIGIT_SHIFT;
     }
     z->digits[i] = carry;
@@ -142,16 +142,16 @@ Number *x_sub(Number *a, Number *b) {
 
     z = number_new(size_a);
     int i;
-    digit borrow = 0;
+    d_digit borrow = 0;
     for (i = 0; i < size_b; i++) {
         borrow = a->digits[i] - b->digits[i] - borrow;
-        z->digits[i] = (digit) (borrow & DIGIT_MASK);
+        z->digits[i] = (d_digit) (borrow & DIGIT_MASK);
         borrow >>= DIGIT_SHIFT;
         borrow &= 1;
     }
     for (; i < size_a; i++) {
         borrow = a->digits[i] - borrow;
-        z->digits[i] = (digit) (borrow & DIGIT_MASK);
+        z->digits[i] = (d_digit) (borrow & DIGIT_MASK);
         borrow >>= DIGIT_SHIFT;
         borrow &= 1;
     }
@@ -168,16 +168,16 @@ Number *x_mul(Number *a, Number *b) {
     int j;
 
     for (i = 0; i < size_a; i++) {
-        twodigits carry = 0;
-        twodigits ai = a->digits[i];
+        d_twodigits carry = 0;
+        d_twodigits ai = a->digits[i];
         for (j = 0; j < size_b; j++) {
-            twodigits bj = b->digits[j];
+            d_twodigits bj = b->digits[j];
             carry += z->digits[i + j] + ai * bj;
-            z->digits[i + j] = (digit) (carry & DIGIT_MASK);
+            z->digits[i + j] = (d_digit) (carry & DIGIT_MASK);
             carry >>= DIGIT_SHIFT;
         }
         if (carry) {
-            z->digits[i + j] += (digit) (carry & DIGIT_MASK);
+            z->digits[i + j] += (d_digit) (carry & DIGIT_MASK);
         }
     }
     return number_normalize(z);
@@ -189,7 +189,7 @@ const unsigned char BitLengthTable[32] = {
         5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5
 };
 
-int bits_in_digit(digit d) {
+int bits_in_digit(d_digit d) {
     int d_bits = 0;
     while (d >= 32) {
         d_bits += 6;
@@ -199,25 +199,25 @@ int bits_in_digit(digit d) {
     return d_bits;
 }
 
-digit v_lshift(digit *z, digit *a, int m, int d) {
-    digit carry = 0;
+d_digit v_lshift(d_digit *z, d_digit *a, int m, int d) {
+    d_digit carry = 0;
     for (int i = 0; i < m; i++) {
-        twodigits acc = (twodigits) a[i] << d | carry;
-        z[i] = (digit) ((digit) acc & DIGIT_MASK);
-        carry = (digit) (acc >> DIGIT_SHIFT);
+        d_twodigits acc = (d_twodigits) a[i] << d | carry;
+        z[i] = (d_digit) ((d_digit) acc & DIGIT_MASK);
+        carry = (d_digit) (acc >> DIGIT_SHIFT);
     }
     return carry;
 }
 
-digit v_rshift(digit *z, digit *a, int m, int d) {
+d_digit v_rshift(d_digit *z, d_digit *a, int m, int d) {
     int i;
-    digit carry = 0;
-    digit mask = (digit) (((digit) 1 << d) - 1U);
+    d_digit carry = 0;
+    d_digit mask = (d_digit) (((d_digit) 1 << d) - 1U);
 
     for (i = m; i-- > 0;) {
-        twodigits acc = (twodigits) carry << DIGIT_SHIFT | a[i];
-        carry = (digit) acc & mask;
-        z[i] = (digit) (acc >> d);
+        d_twodigits acc = (d_twodigits) carry << DIGIT_SHIFT | a[i];
+        carry = (d_digit) acc & mask;
+        z[i] = (d_digit) (acc >> d);
     }
     return carry;
 }
@@ -229,10 +229,10 @@ Number *x_divrem(Number *v1, Number *w1, Number **prem) {
     Number *v, *w, *a;
     int i, k, size_v, size_w;
     int d;
-    digit wm1, wm2, carry, q, r, vtop, *v0, *vk, *w0, *ak;
-    twodigits vv;
-    sdigit zhi;
-    stwodigits z;
+    d_digit wm1, wm2, carry, q, r, vtop, *v0, *vk, *w0, *ak;
+    d_twodigits vv;
+    d_sdigit zhi;
+    d_stwodigits z;
 
     /* We follow Knuth [The Art of Computer Programming, Vol. 2 (3rd
        edn.), section 4.3.1, Algorithm D], except that we don't explicitly
@@ -274,10 +274,10 @@ Number *x_divrem(Number *v1, Number *w1, Number **prem) {
         /* estimate quotient digit q; may overestimate by 1 (rare) */
         vtop = vk[size_w];
         assert(vtop <= wm1);
-        vv = ((twodigits) vtop << DIGIT_SHIFT) | vk[size_w - 1];
-        q = (digit) (vv / wm1);
-        r = (digit) (vv - (twodigits) wm1 * q); /* r = vv % wm1 */
-        while ((twodigits) wm2 * q > (((twodigits) r << DIGIT_SHIFT)
+        vv = ((d_twodigits) vtop << DIGIT_SHIFT) | vk[size_w - 1];
+        q = (d_digit) (vv / wm1);
+        r = (d_digit) (vv - (d_twodigits) wm1 * q); /* r = vv % wm1 */
+        while ((d_twodigits) wm2 * q > (((d_twodigits) r << DIGIT_SHIFT)
                                       | vk[size_w - 2])) {
             --q;
             r += wm1;
@@ -291,19 +291,19 @@ Number *x_divrem(Number *v1, Number *w1, Number **prem) {
         for (i = 0; i < size_w; ++i) {
             /* invariants: -PyLong_BASE <= -q <= zhi <= 0;
                -PyLong_BASE * q <= z < PyLong_BASE */
-            z = (sdigit) vk[i] + zhi -
-                (stwodigits) q * (stwodigits) w0[i];
-            vk[i] = (digit) ((digit) z & DIGIT_MASK);
-            zhi = (sdigit) ARITHMETIC_RIGHT_SHIFT(z, DIGIT_SHIFT);
+            z = (d_sdigit) vk[i] + zhi -
+                (d_stwodigits) q * (d_stwodigits) w0[i];
+            vk[i] = (d_digit) ((d_digit) z & DIGIT_MASK);
+            zhi = (d_sdigit) ARITHMETIC_RIGHT_SHIFT(z, DIGIT_SHIFT);
         }
 
         /* add w back if q was too large (this branch taken rarely) */
-        assert((sdigit) vtop + zhi == -1 || (sdigit) vtop + zhi == 0);
-        if ((sdigit) vtop + zhi < 0) {
+        assert((d_sdigit) vtop + zhi == -1 || (d_sdigit) vtop + zhi == 0);
+        if ((d_sdigit) vtop + zhi < 0) {
             carry = 0;
             for (i = 0; i < size_w; ++i) {
                 carry += vk[i] + w0[i];
-                vk[i] = (digit) (carry & DIGIT_MASK);
+                vk[i] = (d_digit) (carry & DIGIT_MASK);
                 carry >>= DIGIT_SHIFT;
             }
             --q;
@@ -366,31 +366,31 @@ Number *number_mul(Number *a, Number *b) {
 }
 
 
-Number *x_divrem1(Number *a, digit n, digit *prem) {
+Number *x_divrem1(Number *a, d_digit n, d_digit *prem) {
     int size = ABS(a->size);
     Number *z;
 
     z = number_new(size);
 
-    twodigits rem = 0;
+    d_twodigits rem = 0;
 
 
     assert(n > 0 && n < DIGIT_MASK);
 
-    digit *pin = a->digits;
-    digit *pout = z->digits;
+    d_digit *pin = a->digits;
+    d_digit *pout = z->digits;
 
     pin += size;
     pout += size;
 
     while (--size >= 0) {
-        digit hi;
+        d_digit hi;
         rem = (rem << DIGIT_SHIFT) | *--pin;
-        *--pout = hi = (digit) (rem / n);
-        rem -= (twodigits) hi * n;
+        *--pout = hi = (d_digit) (rem / n);
+        rem -= (d_twodigits) hi * n;
     }
 
-    *prem = (digit) rem;
+    *prem = (d_digit) rem;
     return number_normalize(z);
 }
 
@@ -410,7 +410,7 @@ int number_divmod(Number *a, Number *b, Number **pdiv, Number **prem) {
         return 0;
     }
     if (size_b == 1) {
-        digit rem = 0;
+        d_digit rem = 0;
         z = x_divrem1(a, b->digits[0], &rem);
         *prem = number_from_long((long) rem);
 
@@ -436,7 +436,7 @@ int number_cmp(Number *a, Number *b) {
         if (i < 0)
             sign = 0;
         else {
-            sign = (sdigit) a->digits[i] - (sdigit) b->digits[i];
+            sign = (d_sdigit) a->digits[i] - (d_sdigit) b->digits[i];
             if (a->size < 0)
                 sign = -sign;
         }
@@ -447,7 +447,7 @@ int number_cmp(Number *a, Number *b) {
 
 Number * number_copy(Number *a){
 	Number *r = number_new(a->size);
-	memcpy(r->digits, a->digits, sizeof(digit)*ABS(a->size));
+	memcpy(r->digits, a->digits, sizeof(d_digit)*ABS(a->size));
 	return r;
 }
 

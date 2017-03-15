@@ -321,6 +321,12 @@ class IntSetTestCase(unittest.TestCase):
         self.assertEquals(s[-500], l1[-500])
         self.assertRaises(KeyError, lambda:s[3000])
 
+    def test_bigint(self):
+        l1 = range(1<<100, (1<<100)+100)
+        s = IntSet(l1)
+        self.assertTrue(list(s)==l1)
+
+
 
 
 if __name__ == '__main__':
