@@ -11,7 +11,7 @@ class IntSetTestCase(unittest.TestCase):
 
 
     def test_init(self):
-        data = random.sample(xrange(10000), 2)
+        data = random.sample(xrange(10000), 2000)
         self.assertTrue(list(IntSet(data))==sorted(data))
         self.assertTrue(list(IntSet(IntSet(data)))==sorted(data))
         self.assertTrue(list(IntSet())==[])
@@ -25,7 +25,7 @@ class IntSetTestCase(unittest.TestCase):
         self.assertRaises(TypeError, IntSet, ["1"])
 
     def test_negative_num(self):
-        data = random.sample(xrange(-10000, 0), 20)
+        data = random.sample(xrange(-10000, 0), 2000)
         self.assertTrue(list(IntSet(data))==sorted(data))
 
 
@@ -329,7 +329,6 @@ class IntSetTestCase(unittest.TestCase):
         l1 = range(1<<100, (1<<100)+100)
         s = IntSet(l1)
         self.assertTrue(list(s)==l1)
-
 
 
 

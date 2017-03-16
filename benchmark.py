@@ -128,7 +128,7 @@ class IntSetBenchmark(object):
             s2 = clz(l2)
             t1 = time.time()
             for _ in xrange(10000):
-                s1.issubset(s2)
+                s1.issuperset(s2)
             print clz.__name__, time.time() - t1
 
 

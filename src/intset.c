@@ -29,7 +29,7 @@ static const int popCountTable[1 << 8] = {0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2,
                                           4, 5, 5, 6, 5, 6, 6, 7, 5, 6, 6, 7, 6, 7, 7, 8};
 
 
-int count_bit(uint64_t x) {
+int count_bit(Word x) {
     int count = 0;
     while (x > 0) {
         count += popCountTable[x % (1 << 8)];
@@ -39,22 +39,15 @@ int count_bit(uint64_t x) {
 }
 
 
-static Number* get_bpbn(){
-    if(BITS_PER_BLOCK_NUMBER==NULL){
-        BITS_PER_BLOCK_NUMBER = number_from_long(BITS_PER_BLOCK);
-    }
-    return BITS_PER_BLOCK_NUMBER;
-}
-
-inline void word_offset_and_mask(int index, int *word_offset, uint64_t *mask) {
+inline void word_offset_and_mask(int index, int *word_offset, Word *mask) {
     *word_offset = index / BITS_PER_WORD;
-    *mask = (uint64_t) 1 << (index % BITS_PER_WORD);
+    *mask = (Word) 1 << (index % BITS_PER_WORD);
 }
 
 
 int block_add(Block *block, int index) {
     int word_offset;
-    uint64_t mask;
+    Word mask;
     word_offset_and_mask(index, &word_offset, &mask);
     if ((block->bits[word_offset] & mask) == 0) {
         block->bits[word_offset] |= mask;
@@ -73,7 +66,7 @@ int block_size(Block *block) {
 
 int block_remove(Block *block, int index) {
     int word_offset;
-    uint64_t mask;
+    Word mask;
     word_offset_and_mask(index, &word_offset, &mask);
     if ((block->bits[word_offset] & mask) != 0) {
         block->bits[word_offset] &= ~mask;
@@ -92,7 +85,7 @@ Block *block_copy(Block *b) {
 
 int block_has(Block *block, int index) {
     int word_offset;
-    uint64_t mask;
+    Word mask;
     word_offset_and_mask(index, &word_offset, &mask);
     if ((block->bits[word_offset] & mask) != 0)
         return 1;
@@ -101,7 +94,7 @@ int block_has(Block *block, int index) {
 
 int block_next(Block *block, int index) {
     int word_offset;
-    uint64_t mask;
+    Word mask;
     index++;
     word_offset_and_mask(index, &word_offset, &mask);
     for (int i = word_offset; i < WORDS_PER_BLOCK; i++) {
@@ -124,17 +117,12 @@ int block_next(Block *block, int index) {
 Number* block_max(Block *block, int *error) {
     *error = 0;
     for (int i = WORDS_PER_BLOCK - 1; i >= 0; i--) {
-        uint64_t word = block->bits[i];
+        Word word = block->bits[i];
         if (word == 0)continue;
-        uint64_t mask = (uint64_t) 1 << (BITS_PER_WORD - 1);
+        Word mask = (Word) 1 << (BITS_PER_WORD - 1);
         for (int j = 0; j < BITS_PER_WORD; j++) {
             if (word & mask) {
-
-                Number * index_n = number_from_long(i * BITS_PER_WORD + BITS_PER_WORD - j - 1);
-                Number * r = number_add(block->offset, index_n);
-                number_clear(index_n);
-                return r;
-
+                return number_add(block->offset, number_get_small(i * BITS_PER_WORD + BITS_PER_WORD - j - 1));
             }
             mask >>= 1;
         }
@@ -146,15 +134,12 @@ Number* block_max(Block *block, int *error) {
 Number* block_min(Block *block, int *error) {
     *error = 0;
     for (int i = 0; i < WORDS_PER_BLOCK; i++) {
-        uint64_t word = block->bits[i];
+        Word word = block->bits[i];
         if (word == 0)continue;
-        uint64_t mask = 1;
+        Word mask = 1;
         for (int j = 0; j < BITS_PER_WORD; j++) {
             if (word & mask) {
-                Number * index_n = number_from_long(i*BITS_PER_WORD+j);
-                Number * r = number_add(block->offset, index_n);
-                number_clear(index_n);
-                return r;
+                return number_add(block->offset, number_get_small(i*BITS_PER_WORD+j));
             }
             mask <<= 1;
         }
@@ -174,18 +159,12 @@ int block_is_empty(Block *block) {
 
 
 void offset_and_index(Number* x, Number** offset, int *index) {
-    Number *pdiv, *prem;
-    Number * bpbn = get_bpbn();
-    number_divmod(x, bpbn, &pdiv, &prem);
-    number_clear(pdiv);
-    Number *base = prem;
-    if (base->size < 0) {
-        Number *b1 = number_add(base, bpbn);
-        number_clear(base);
-        base = b1;
-    }
-    *offset = number_sub(x, base);
-    *index = number_as_long(base);
+    int idx = number_splice(x, BLOCK_LEN);
+    if(x->size<0 & idx>0){
+        idx = BITS_PER_BLOCK - idx;
+   }
+   *offset = number_sub(x, number_from_long(idx));
+   *index = idx;
 }
 
 
@@ -356,10 +335,7 @@ Number* intsetiter_next(IntSetIter *iter, int *stopped) {
         }
         iter->current_index = index;
         *stopped = 0;
-        Number * index_n = number_from_long(index);
-        Number *r = number_add(b->offset, index_n);
-        number_clear(index_n);
-        return r;
+        return number_add(b->offset, number_get_small(index));
     }
     *stopped = 1;
     return 0;
@@ -388,10 +364,10 @@ IntSet *intset_and(IntSet *self, IntSet *other) {
             ob = ob->next;
         } else {
             Number* offset = sb->offset;
-            uint64_t words[WORDS_PER_BLOCK] = {0};
+            Word words[WORDS_PER_BLOCK] = {0};
             int is_empty = 1;
             for (int i = 0; i < WORDS_PER_BLOCK; i++) {
-                uint64_t word = sb->bits[i] & ob->bits[i];
+                Word word = sb->bits[i] & ob->bits[i];
                 if (word != 0)is_empty = 0;
                 words[i] = word;
             }
@@ -418,7 +394,7 @@ void intset_merge(IntSet *self, IntSet *other) {
     Block *sb = intset_start(self);
     Block *ob = intset_start(other);
     while (ob != other->root) {
-        if (sb != self->root && number_cmp(sb->offset,ob->offset)==0) {
+        if (sb != self->root && number_cmp(sb->offset, ob->offset)==0) {
             for (int i = 0; i < WORDS_PER_BLOCK; i++) {
                 sb->bits[i] |= ob->bits[i];
             }
@@ -463,10 +439,10 @@ IntSet *intset_sub(IntSet *self, IntSet *other) {
             continue;
         } else {
             block->offset = number_copy(sb->offset);
-            uint64_t words[WORDS_PER_BLOCK] = {0};
+            Word words[WORDS_PER_BLOCK] = {0};
             int is_empty = 1;
             for (int i = 0; i < WORDS_PER_BLOCK; i++) {
-                uint64_t word = sb->bits[i] & ~ob->bits[i];
+                Word word = sb->bits[i] & ~ob->bits[i];
                 if (word != 0)is_empty = 0;
                 words[i] = word;
             }
@@ -511,10 +487,10 @@ IntSet *intset_xor(IntSet *self, IntSet *other) {
             sb = sb->next;
         } else if (number_cmp(sb->offset, ob->offset)==0) {
             block->offset = number_copy(sb->offset);
-            uint64_t words[WORDS_PER_BLOCK] = {0};
+            Word words[WORDS_PER_BLOCK] = {0};
             int is_empty = 1;
             for (int i = 0; i < WORDS_PER_BLOCK; i++) {
-                uint64_t word = sb->bits[i] ^ob->bits[i];
+                Word word = sb->bits[i] ^ob->bits[i];
                 if (word != 0)is_empty = 0;
                 words[i] = word;
             }
@@ -635,12 +611,12 @@ Block *block_get_slice(Block *b, int start, int end) {
         if (i < start_bit || i > end_bit) {
             rb->bits[i] = 0;
         } else if (i == start_bit && i != end_bit) {
-            rb->bits[i] = b->bits[i] & ~(((uint64_t) 1 << (start - i * BITS_PER_WORD)) - 1);
+            rb->bits[i] = b->bits[i] & ~(((Word) 1 << (start - i * BITS_PER_WORD)) - 1);
         } else if (i == end_bit && i != start_bit) {
-            rb->bits[i] = b->bits[i] & (((uint64_t) 1 << (end - i * BITS_PER_WORD)) - 1);
+            rb->bits[i] = b->bits[i] & (((Word) 1 << (end - i * BITS_PER_WORD)) - 1);
         } else if (i == end_bit && i == start_bit) {
-            rb->bits[i] = b->bits[i] & ~(((uint64_t) 1 << (start - i * BITS_PER_WORD)) - 1) &
-                          (((uint64_t) 1 << (end - i * BITS_PER_WORD)) - 1);
+            rb->bits[i] = b->bits[i] & ~(((Word) 1 << (start - i * BITS_PER_WORD)) - 1) &
+                          (((Word) 1 << (end - i * BITS_PER_WORD)) - 1);
         } else if (start_bit < i && i < end_bit) {
             rb->bits[i] = b->bits[i];
         }
@@ -736,10 +712,7 @@ Number* intset_get_item(IntSet *set, int index, int *error) {
         for (int i = 0; i <= index - sum; i++) {
             result = block_next(b, result);
         }
-        Number * result_n = number_from_long(result);
-        Number * r = number_add(b->offset, result_n);
-        number_clear(result_n);
-        return r;
+        return number_add(b->offset, number_get_small(result));
     }
 }
 

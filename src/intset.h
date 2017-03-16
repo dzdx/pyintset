@@ -5,15 +5,23 @@
 
 #include "number.h"
 
+
+#ifdef UINT64_MAX
+typedef uint64_t Word;
 static const int BITS_PER_WORD = 64;
-static const int BITS_PER_BLOCK = 256;
+#else
+typedef uint32_t Word;
+static const int BITS_PER_WORD = 32;
+#endif
+
+static const int BLOCK_LEN = 8;
+static const int BITS_PER_BLOCK = 1<<8;
 static const int WORDS_PER_BLOCK = (BITS_PER_BLOCK / BITS_PER_WORD);
-static Number* BITS_PER_BLOCK_NUMBER = NULL;
 
 
 typedef struct B {
     Number * offset;
-    uint64_t bits[WORDS_PER_BLOCK];
+    Word bits[WORDS_PER_BLOCK];
     struct B *prev;
     struct B *next;
 

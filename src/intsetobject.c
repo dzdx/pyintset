@@ -13,7 +13,6 @@
 #define PyIntOrLong_Check(op)       (PyInt_Check(op) || PyLong_Check(op))
 
 Number* PyInt_AsNumber(PyObject *obj){
-//TODO python digit 类型不确定
     if(PyInt_Check(obj)){
         return number_from_long(PyInt_AsLong(obj));
     }else if(PyLong_Check(obj)){
