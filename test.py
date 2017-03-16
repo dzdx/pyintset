@@ -9,7 +9,6 @@ import random
 
 class IntSetTestCase(unittest.TestCase):
 
-
     def test_init(self):
         data = random.sample(xrange(10000), 2000)
         self.assertTrue(list(IntSet(data))==sorted(data))

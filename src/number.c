@@ -214,35 +214,6 @@ Number *number_sub(Number *a, Number *b) {
 }
 
 
-Number *x_divrem1(Number *a, digit n, digit *prem) {
-    int size = ABS(a->size);
-    Number *z;
-
-    z = number_new(size);
-
-    twodigits rem = 0;
-
-
-    assert(n > 0 && n < PyLong_MASK);
-
-    digit *pin = a->digits;
-    digit *pout = z->digits;
-
-    pin += size;
-    pout += size;
-
-    while (--size >= 0) {
-        digit hi;
-        rem = (rem << PyLong_SHIFT) | *--pin;
-        *--pout = hi = (digit) (rem / n);
-        rem -= (twodigits) hi * n;
-    }
-
-    *prem = (digit) rem;
-    return number_normalize(z);
-}
-
-
 int number_cmp(Number *a, Number *b) {
     int sign;
     if (a->size != b->size) {
@@ -263,7 +234,7 @@ int number_cmp(Number *a, Number *b) {
 }
 
 
-int number_splice(Number *in,int n){
+int number_slice(Number *in,int n){
     int idx = 0;
     for(int i=0;n>0&&i<ABS(in->size);i++){
         digit d = in->digits[i];

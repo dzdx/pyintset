@@ -159,7 +159,7 @@ int block_is_empty(Block *block) {
 
 
 void offset_and_index(Number* x, Number** offset, int *index) {
-    int idx = number_splice(x, BLOCK_LEN);
+    int idx = number_slice(x, BLOCK_LEN);
     if(x->size<0 & idx>0){
         idx = BITS_PER_BLOCK - idx;
    }
@@ -429,7 +429,7 @@ IntSet *intset_sub(IntSet *self, IntSet *other) {
 
     while (sb != self->root) {
         Block *block = calloc(1, sizeof(Block));
-        if (number_cmp(sb->offset, ob->offset)<0 || ob == other->root) {
+        if (ob==other->root || number_cmp(sb->offset, ob->offset)<0) {
             block->offset = number_copy(sb->offset);
             memcpy(block->bits, sb->bits, sizeof(sb->bits));
             sb = sb->next;

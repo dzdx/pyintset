@@ -33,7 +33,7 @@ Number *number_add(Number *a, Number *b);
 
 Number *number_sub(Number *n1, Number *n2);
 
-int number_splice(Number *in, int n);
+int number_slice(Number *in, int n);
 
 int number_cmp(Number *a, Number *b);
 
