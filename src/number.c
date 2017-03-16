@@ -29,6 +29,17 @@ Number *number_new(int size) {
     return n;
 }
 
+
+int number_bitlen(Number *v){
+    digit d = v->digits[ABS(v->size)-1];
+    for(int i=0;i<PyLong_SHIFT;i--){
+        if((d & (1<<(PyLong_SHIFT-1 - i)))!=0){
+            return (ABS(v->size)-1)*PyLong_SHIFT - i;
+        }
+    }
+    return (ABS(v->size)-2)*PyLong_SHIFT;
+}
+
 Number *number_normalize(Number *v) {
     int i = ABS(v->size);
     while (i > 0 && v->digits[i - 1] == 0) {

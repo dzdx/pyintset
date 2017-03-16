@@ -12,6 +12,8 @@
 
 #define PyIntOrLong_Check(op)       (PyInt_Check(op) || PyLong_Check(op))
 
+
+
 Number* PyInt_AsNumber(PyObject *obj){
     if(PyInt_Check(obj)){
         return number_from_long(PyInt_AsLong(obj));
@@ -31,7 +33,7 @@ Number* PyInt_AsNumber(PyObject *obj){
 
 PyObject* PyInt_FromNumber(Number *obj){
     int size = ABS(obj->size);
-    if(size > 2 ){
+    if(ABS(obj->size) * PyLong_SHIFT  >= 64 ){
         PyLongObject * v = PyObject_NEW_VAR(PyLongObject, &PyLong_Type, size);
         v->ob_size = obj->size;
         for(int i=0;i<size;i++){

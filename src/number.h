@@ -41,3 +41,4 @@ void number_clear(Number *a);
 
 Number *number_copy(Number *a);
 
+int number_bitlen(Number *v);
