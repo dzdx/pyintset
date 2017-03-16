@@ -26,6 +26,7 @@ Number* PyInt_AsNumber(PyObject *obj){
         return n;
     }else{
         PyErr_Format(PyExc_TypeError, "require int or long");
+        return NULL;
     }
 }
 
@@ -256,7 +257,7 @@ static PyObject *set_repr(IntSetObject *set_obj) {
 
 
 static PyObject *set_add(IntSetObject *set_obj, PyObject *obj) {
-    if (!PyInt_Check(obj) && !PyLong_Check(obj)) {
+    if (!PyIntOrLong_Check(obj)) {
         PyErr_Format(PyExc_TypeError, "%s", Py_TYPE(obj)->tp_name);
         return NULL;
     }
@@ -267,7 +268,7 @@ static PyObject *set_add(IntSetObject *set_obj, PyObject *obj) {
 }
 
 static PyObject *set_remove(IntSetObject *set_obj, PyObject *obj) {
-    if (!PyInt_Check(obj) && !PyLong_Check(obj)) {
+    if (!PyIntOrLong_Check(obj)) {
         PyErr_Format(PyExc_TypeError, "%s", Py_TYPE(obj)->tp_name);
         return NULL;
     }
@@ -283,7 +284,7 @@ static PyObject *set_remove(IntSetObject *set_obj, PyObject *obj) {
 
 static PyObject *set_discard(IntSetObject *set_obj, PyObject *obj) {
 
-    if (!PyInt_Check(obj) && !PyLong_Check(obj)) {
+    if (!PyIntOrLong_Check(obj)) {
         PyErr_Format(PyExc_TypeError, "%s", Py_TYPE(obj)->tp_name);
         return NULL;
     }
@@ -300,7 +301,7 @@ static Py_ssize_t set_len(PyObject *set_obj) {
 }
 
 static int set_contains(IntSetObject *set_obj, PyObject *obj) {
-    if (!PyInt_Check(obj) && !PyLong_Check(obj)) {
+    if (!PyIntOrLong_Check(obj)) {
         PyErr_Format(PyExc_TypeError, "%s", Py_TYPE(obj)->tp_name);
         return -1;
     }
@@ -582,7 +583,7 @@ static PyObject *set_issuperset(IntSetObject *set_obj, PyObject *other) {
 
 
 static PyObject *set_direct_contains(IntSetObject *set_obj, PyObject *obj) {
-    if (!PyInt_Check(obj) && !PyLong_Check(obj)) {
+    if (!PyIntOrLong_Check(obj)) {
         PyErr_Format(PyExc_TypeError, "%s", Py_TYPE(obj)->tp_name);
         return NULL;
     }

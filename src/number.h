@@ -2,18 +2,26 @@
 // Created by lxd on 2017/3/9.
 //
 
+
 #ifndef NUMBER_H
 #define NUMBER_H
+
+#ifdef UINT64_MAX
+#define DIGIT_SHIFT 30
 typedef uint32_t d_digit;
 typedef int32_t d_sdigit;
 typedef uint64_t d_twodigits;
 typedef int64_t d_stwodigits;
+#else
+#define DIGIT_SHIFT 15
+typedef uint16_t d_digit;
+typedef int16_t d_sdigit;
+typedef uint32_t d_twodigits;
+typedef int32_t d_stwodigits;
+#endif
 
-#define DIGIT_SHIFT 30
 #define DIGIT_BASE ((d_digit)1<<DIGIT_SHIFT)
-
 #define DIGIT_MASK ((d_digit)DIGIT_BASE-1)
-
 
 
 typedef struct {
@@ -45,4 +53,5 @@ int number_cmp(Number *a, Number *b);
 
 void number_clear(Number *a);
 
-Number * number_copy(Number *a);
+Number *number_copy(Number *a);
+

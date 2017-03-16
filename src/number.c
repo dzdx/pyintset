@@ -12,12 +12,6 @@
 #define ABS(x) ((x) < 0 ? -(x) : (x))
 
 
-#define DIGIT_SHIFT 30
-#define DIGIT_BASE ((d_digit)1<<DIGIT_SHIFT)
-
-#define DIGIT_MASK ((d_digit)DIGIT_BASE-1)
-
-
 Number *number_new(int size) {
     Number *n = malloc(sizeof(Number));
     n->size = size;

@@ -257,6 +257,8 @@ class IntSetTestCase(unittest.TestCase):
         s1 = IntSet(l2)
         s2 = IntSet(l1)
         self.assertTrue(s1.issubset(s2))
+        s1.add(100001)
+        self.assertFalse(s1.issubset(s2))
         self.assertRaises(TypeError, s1.issubset, "123")
 
     def test_issuperset(self):
@@ -265,6 +267,8 @@ class IntSetTestCase(unittest.TestCase):
         s1 = IntSet(l1)
         s2 = IntSet(l2)
         self.assertTrue(s1.issuperset(s2))
+        s2.add(100001)
+        self.assertFalse(s1.issuperset(s2))
         self.assertRaises(TypeError, s1.issuperset, "123")
 
 
