@@ -21,9 +21,7 @@ Number* PyInt_AsNumber(PyObject *obj){
         int size = ABS(Py_SIZE(obj));
         Number * n = number_new(ABS(size));
         PyLongObject * v = (PyLongObject *) obj;
-        for(int i=0;i<size;i++){
-            n->digits[i] = v->ob_digit[i];
-        }
+        memcpy(n->digits, v->ob_digit, size*sizeof(digit));
         return n;
     }else{
         PyErr_Format(PyExc_TypeError, "require int or long");
@@ -36,9 +34,7 @@ PyObject* PyInt_FromNumber(Number *obj){
     if(ABS(obj->size) * PyLong_SHIFT  >= 64 ){
         PyLongObject * v = PyObject_NEW_VAR(PyLongObject, &PyLong_Type, size);
         v->ob_size = obj->size;
-        for(int i=0;i<size;i++){
-            v->ob_digit[i] = obj->digits[i];
-        }
+        memcpy(v->ob_digit, obj->digits, size*sizeof(digit));
         return (PyObject *)v;
     }else{
         return PyInt_FromLong(number_as_long(obj));

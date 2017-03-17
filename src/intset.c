@@ -163,7 +163,7 @@ void offset_and_index(Number* x, Number** offset, int *index) {
     if(x->size<0 & idx>0){
         idx = BITS_PER_BLOCK - idx;
    }
-   *offset = number_sub(x, number_from_long(idx));
+   *offset = number_sub(x, number_get_small(idx));
    *index = idx;
 }
 
@@ -192,6 +192,7 @@ IntSet *intset_copy(IntSet *self) {
 
 
 int intset_insert_after(IntSet *set, Number* x, Block **block_ref) {
+	//在*block_ref后面含*block_ref插入x到对应的位置
     Number* offset;
     int index;
     offset_and_index(x, &offset, &index);
