@@ -321,7 +321,10 @@ static PyObject *set_get_item(IntSetObject *set_obj, Py_ssize_t i) {
         PyErr_Format(PyExc_KeyError, "%ld", i);
         return NULL;
     }
-    return PyInt_FromNumber(x);
+    PyObject * r = PyInt_FromNumber(x);
+    number_clear(x);
+    return r;
+
 }
 
 
@@ -332,7 +335,9 @@ static PyObject *set_max(IntSetObject *set_obj) {
         PyErr_Format(PyExc_ValueError, "intset is empty");
         return NULL;
     }
-    return PyInt_FromNumber(result);
+    PyObject * r = PyInt_FromNumber(result);
+    number_clear(result);
+    return r;
 }
 
 static PyObject *set_min(IntSetObject *set_obj) {
@@ -342,7 +347,9 @@ static PyObject *set_min(IntSetObject *set_obj) {
         PyErr_Format(PyExc_ValueError, "intset is empty");
         return NULL;
     }
-    return PyInt_FromNumber(result);
+    PyObject * r = PyInt_FromNumber(result);
+    number_clear(result);
+    return r;
 }
 
 static PyObject *set_or(IntSetObject *set_obj, PyObject *other) {
