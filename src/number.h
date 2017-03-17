@@ -12,7 +12,6 @@
 typedef struct {
     int size;
     digit *digits;
-    int islong;
 } Number;
 
 
