@@ -2,6 +2,7 @@
 
 import platform
 import time
+import timeit
 import sys
 import inspect
 import StringIO
@@ -12,129 +13,127 @@ import random
 benchmark_results = []
 
 
+clzs = (IntSet, set)
+
+
+def benchmark_wrap(func):
+    def _(*args, **kwargs):
+        durations = []
+        for caller in  func(*args, **kwargs):
+            durations.append(min(timeit.repeat(caller, repeat=10, number=10000)))
+        benchmark_results.append((func.__name__, durations))
+    return _
+
+
 class IntSetBenchmark(object):
-    def __init__(self):
-        self.result = []
 
     def run(self):
         for name, method in inspect.getmembers(self):
             if name.startswith("benchmark"):
-                print '-'*20+method.__name__+'-'*20
                 method()
 
-    def add_report(self, name):
-        pass
+    def output_report(self):
+        uname_system, _, uname_release, uname_version, _, uname_processor = platform.uname()
+        print "Test machine:"
+        print "^^^^^^^^^^^^^^"
+	print ""
+        print " ".join([uname_system, uname_release, uname_processor, uname_version])
+        print "{:=<40} {:=<40} {:=<40}".format("", "", "")
+        print "{:<40} {:<40} {:<40}".format("benchmark", "IntSet", "set")
+        print "{:=<40} {:=<40} {:=<40}".format("", "", "")
+        for name, durations in benchmark_results:
+            print "{:<40} {:<40} {:<40}".format(name, durations[0], durations[1])
+        print "{:=<40} {:=<40} {:=<40}".format("", "", "")
 
-    def benchmark_load_iterable(self):
-        pass
 
+
+    @benchmark_wrap
     def benchmark_add(self):
         l1 = random.sample(xrange(10000), 2000)
-        for clz in (IntSet, set):
-            t1 = time.time()
-            for _ in xrange(100):
-                s1 = clz()
-                for x in l1:
-                    s1.add(x)
-            print clz.__name__, time.time() - t1
+        v = 10001
+        for clz in clzs:
+            s = clz(l1)
+            yield lambda:s.add(v)
 
-    def benchmark_remove(self):
+    @benchmark_wrap
+    def benchmark_discard(self):
         l1 = random.sample(xrange(10000), 2000)
-        for clz in (IntSet, set):
-            t1 = time.time()
-            for _ in xrange(100):
-                s1 = clz(l1)
-                for x in l1:
-                    s1.remove(x)
-            print clz.__name__, time.time() - t1
+        v = 2000
+        for clz in clzs:
+            s = clz(l1)
+            yield lambda:s.discard(v)
 
+
+    @benchmark_wrap
     def benchmark_intersection(self):
         l1 = random.sample(xrange(10000), 2000)
         l2 = random.sample(xrange(10000), 2000)
-
-
-        for clz in (IntSet, set):
+        for clz in clzs:
             s1 = clz(l1)
             s2 = clz(l2)
-            t1 = time.time()
-            for _ in xrange(10000):
-                s1 & s2
-            print  clz.__name__, time.time() - t1
+            yield lambda:s1|s2
 
 
+    @benchmark_wrap
     def benchmark_difference(self):
         l1 = random.sample(xrange(10000), 2000)
         l2 = random.sample(xrange(10000), 2000)
-
-
-        for clz in (IntSet, set):
+        for clz in clzs:
             s1 = clz(l1)
             s2 = clz(l2)
-            t1 = time.time()
-            for _ in xrange(10000):
-                s1 - s2
-            print clz.__name__, time.time() - t1
+            yield lambda:s1-s2
 
+
+    @benchmark_wrap
     def benchmark_union(self):
         l1 = random.sample(xrange(10000), 2000)
         l2 = random.sample(xrange(10000), 2000)
-
-
-        for clz in (IntSet, set):
+        for clz in clzs:
             s1 = clz(l1)
             s2 = clz(l2)
-            t1 = time.time()
-            for _ in xrange(10000):
-                s1 | s2
-            print clz.__name__, time.time() - t1
+            yield lambda:s1|s2
 
+    @benchmark_wrap
     def benchmark_symmetric_difference(self):
         l1 = random.sample(xrange(10000), 2000)
         l2 = random.sample(xrange(10000), 2000)
-
-
-        for clz in (IntSet, set):
+        for clz in clzs:
             s1 = clz(l1)
             s2 = clz(l2)
-            t1 = time.time()
-            for _ in xrange(10000):
-                s1 ^ s2
-            print clz.__name__, time.time() - t1
+            yield lambda:s1^s2
 
-
+    @benchmark_wrap
     def benchmark_update(self):
-        pass
+        l1 = random.sample(xrange(10000), 2000)
+        l2 = random.sample(xrange(10000), 200)
+        for clz in clzs:
+            s1 = clz(l1)
+            yield lambda:s1.update(l2)
 
-    def benchmark_subset(self):
+    @benchmark_wrap
+    def benchmark_issubset(self):
         l1 = random.sample(xrange(10000), 2000)
         l2 = random.sample(l1, 300)
-
-
         for clz in (IntSet, set):
             s1 = clz(l1)
             s2 = clz(l2)
-            t1 = time.time()
-            for _ in xrange(10000):
-                s2.issubset(s1)
-            print clz.__name__, time.time() - t1
+            yield lambda:s2.issubset(s1)
 
-    def benchmark_superset(self):
+    @benchmark_wrap
+    def benchmark_issuperset(self):
         l1 = random.sample(xrange(10000), 2000)
         l2 = random.sample(l1, 300)
-
-
-        for clz in (IntSet, set):
+        for clz in clzs:
             s1 = clz(l1)
             s2 = clz(l2)
-            t1 = time.time()
-            for _ in xrange(10000):
-                s1.issuperset(s2)
-            print clz.__name__, time.time() - t1
+            yield lambda:s1.issuperset(s2)
+
 
 
 if __name__ == "__main__":
     b = IntSetBenchmark()
     b.run()
+    b.output_report()
 
 
 
