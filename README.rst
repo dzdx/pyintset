@@ -107,5 +107,42 @@ benchmark_union                          0.182527065277                         
 benchmark_update                         1.29842996597                            0.065318107605
 ======================================== ======================================== ========================================
 
+memory profile
+---------------
+
+::
+
+    Filename: memory_profile.py
+
+    Line #    Mem usage    Increment   Line Contents
+    ================================================
+        13   35.633 MiB    0.000 MiB   @profile
+        14                             def create_intsets():
+        15   43.516 MiB    7.883 MiB       data = [IntSet(items) for _ in range(1000)]
 
 
+    Filename: memory_profile.py
+
+    Line #    Mem usage    Increment   Line Contents
+    ================================================
+        16   43.516 MiB    0.000 MiB   @profile
+        17                             def create_long_intsets():
+        18   44.805 MiB    1.289 MiB       data = [IntSet(long_items) for _ in range(1000)]
+
+
+    Filename: memory_profile.py
+
+    Line #    Mem usage    Increment   Line Contents
+    ================================================
+        20   33.465 MiB    0.000 MiB   @profile
+        21                             def create_sets():
+        22  158.652 MiB  125.188 MiB       data = [set(items) for _ in range(1000)]
+
+
+    Filename: memory_profile.py
+
+    Line #    Mem usage    Increment   Line Contents
+    ================================================
+        24   35.652 MiB    0.000 MiB   @profile
+        25                             def create_long_sets():
+        26  158.652 MiB  123.000 MiB       data = [set(long_items) for _ in range(1000)]
