@@ -28,7 +28,7 @@ pyintset can init by set, list, dict and any other iterable collection, include 
   
 method
 ^^^^^^^^
-pyintset supports most methods of set. In addition, because it is stored in order, it is also supported get_item and get_slice
+pyintset supports most methods of set. In addition, because it is stored in order, it is also supported get_item and get_slice, max, min
 ::
 
   >>> IntSet(range(0,20))&IntSet(range(15,25))
@@ -57,34 +57,33 @@ api
 ==============================================            =========
 method example                                             doc
 ==============================================            =========
-s.add( (<int>|<long>) )
-s.remove( (<int>|<long>) )
-s.discard( <int>|<long>) )
-s.max()
-s.min()
-s.clear()
-s.copy()
-s.issubset(<IntSet>)
-s.issuperset(<IntSet>)
-s.intersection(<iterable>)
-s.intersection_update(<iterable>)
-s.union(<iterable>)
-s.update(<iterable>)
-s.difference(<iterable>)
-s.difference_update(iterable>)
-s.symmetric_difference(<iterable>)
-s.symmetric_difference_update(<iterable>)
-s&<IntSet>
-s|<IntSet>
-s^<IntSet>
-s-<IntSet>
-(<int>|<long) in s
-len(s)
-s[2]
-s[1:10]
-[x for x in s]
-s (<|<=|==|>|>=) <IntSet>
-
+s.add( (<int>|<long>) )                                    Add an Integer to a intset. return None.
+s.remove( (<int>|<long>) )                                 Remove an Integer from a intset. If the Integer is not a member, raise a KeyError.
+s.discard( <int>|<long>) )                                 Remove an Integer from a intset.\n If the Integer is not a member, do noting."
+s.max()                                                    Get the max Integer in a intset.\n If the intset is empty, raise a ValueError.
+s.min()                                                    Get the min Integer in a intset.\n If the intset is empty, raise a ValueError.
+s.clear()                                                  Remove all elements from this intset.
+s.copy()                                                   Return a copy of a intset.
+s.issubset(<IntSet>)                                       Report whether another intset contains this intset.
+s.issuperset(<IntSet>)                                     Report whether this intset contains another intset.
+s.intersection(<iterable>)                                 Return the intersection of an intset and an iterable object as a new intset.
+s.intersection_update(<iterable>)                          Update a intset with the intersection of itself and other iterable object.
+s.union(<iterable>)                                        Return the union of an intset and an iterable object as a new intset.
+s.update(<iterable>)                                       Update a intset with the union of itself and other iterable object.
+s.difference(<iterable>)                                   Return the difference of an intset and an iterable object as a new intset.
+s.difference_update(iterable>)                             Update a intset with the difference of itself and other iterable object.
+s.symmetric_difference(<iterable>)                         Return the symmetric_difference of an intset and an iterable object as a new intset.
+s.symmetric_difference_update(<iterable>)                  Update a intset with the symmetric_difference of itself and other iterable object.
+s&<IntSet>                                                 Similar to intersection, but only accept an intset
+s|<IntSet>                                                 Similar to union, but only accept an intset                    
+s^<IntSet>                                                 Similar to symmetric_difference, but only accept an intset
+s-<IntSet>                                                 Similar to difference, but only accept an intset
+(<int>|<long) in s                                         Report whether an integer is a member of this intset
+len(s)                                                     Return the num of members in 
+s[2]                                                       Return an integer by index
+s[1:10]                                                    Return a slice intset  by range
+iter(s)                                                    Iter this intset, return member is it one by one
+s (<|<=|==|>|>=) <IntSet>                                  <= is similar to issubset, >= is similar to issuperset
 ==============================================            =========
 
 
