@@ -52,7 +52,7 @@ pyintset supports most methods of set. In addition, because it is stored in orde
   225
   
 api
-^^^^
+------
 
 ==============================================            =========
 method example                                             doc
@@ -85,5 +85,27 @@ s[1:10]                                                    Return a slice intset
 iter(s)                                                    Iter this intset, return member is it one by one
 s (<|<=|==|>|>=) <IntSet>                                  <= is similar to issubset, >= is similar to issuperset
 ==============================================            =========
+
+benchmark
+--------------
+Test machine:
+^^^^^^^^^^^^^^
+Darwin 16.0.0 i386 Darwin Kernel Version 16.0.0: Mon Aug 29 17:56:20 PDT 2016; root:xnu-3789.1.32~3/RELEASE_X86_64
+
+
+======================================== ======================================== ========================================
+benchmark                                IntSet                                   set
+======================================== ======================================== ========================================
+benchmark_add                            0.00987386703491                         0.00213813781738
+benchmark_difference                     0.183174848557                           1.37597703934
+benchmark_discard                        0.00622200965881                         0.00212502479553
+benchmark_intersection                   0.18705201149                            1.93599200249
+benchmark_issubset                       0.00588011741638                         0.0320630073547
+benchmark_issuperset                     0.006422996521                           0.0315799713135
+benchmark_symmetric_difference           0.176005125046                           2.32426595688
+benchmark_union                          0.182527065277                           1.96527099609
+benchmark_update                         1.29842996597                            0.065318107605
+======================================== ======================================== ========================================
+
 
 
