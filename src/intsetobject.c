@@ -18,10 +18,10 @@ Number* PyInt_AsNumber(PyObject *obj){
     if(PyInt_Check(obj)){
         return number_from_long(PyInt_AsLong(obj));
     }else if(PyLong_Check(obj)){
-        int size = ABS(Py_SIZE(obj));
-        Number * n = number_new(ABS(size));
+        int size = Py_SIZE(obj);
+        Number * n = number_new(size);
         PyLongObject * v = (PyLongObject *) obj;
-        memcpy(n->digits, v->ob_digit, size*sizeof(digit));
+        memcpy(n->digits, v->ob_digit, ABS(size)*sizeof(digit));
         return n;
     }else{
         PyErr_Format(PyExc_TypeError, "require int or long");

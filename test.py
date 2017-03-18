@@ -219,6 +219,10 @@ class IntSetTestCase(unittest.TestCase):
         self.assertRaises(TypeError, s1.update, 1)
         self.assertRaises(TypeError, s1.update, ["1"])
 
+        s1 = IntSet([1<<1000])
+        s1.update(range(255, 257))
+        self.assertEquals(s1.max(), 1<<1000)
+
 
     def test_symmetric_difference(self):
 

@@ -400,6 +400,7 @@ void intset_merge(IntSet *self, IntSet *other) {
                 sb->bits[i] |= ob->bits[i];
             }
             ob = ob->next;
+            sb = sb->next;
         } else if (sb == self->root || number_cmp(sb->offset, ob->offset)>0) {
 
             Block *b = block_copy(ob);
@@ -412,7 +413,6 @@ void intset_merge(IntSet *self, IntSet *other) {
 
             ob = ob->next;
         }
-        sb = sb->next;
     }
 }
 
