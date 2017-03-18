@@ -59,7 +59,7 @@ method example                                             doc
 ==============================================            =========
 s.add( (<int>|<long>) )                                    Add an Integer to a intset. return None.
 s.remove( (<int>|<long>) )                                 Remove an Integer from a intset. If the Integer is not a member, raise a KeyError.
-s.discard( <int>|<long>) )                                 Remove an Integer from a intset.\n If the Integer is not a member, do noting."
+s.discard( (<int>|<long>) )                                 Remove an Integer from a intset.\n If the Integer is not a member, do noting."
 s.max()                                                    Get the max Integer in a intset.\n If the intset is empty, raise a ValueError.
 s.min()                                                    Get the min Integer in a intset.\n If the intset is empty, raise a ValueError.
 s.clear()                                                  Remove all elements from this intset.
