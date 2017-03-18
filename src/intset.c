@@ -10,7 +10,6 @@
 #include "number.h"
 
 
-
 static const int popCountTable[1 << 8] = {0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 4,
                                           1, 2, 2, 3, 2, 3, 3, 4, 2, 3, 3, 4, 3, 4, 4, 5,
                                           1, 2, 2, 3, 2, 3, 3, 4, 2, 3, 3, 4, 3, 4, 4, 5,
@@ -114,7 +113,7 @@ int block_next(Block *block, int index) {
     return -1;
 }
 
-Number* block_max(Block *block, int *error) {
+Number *block_max(Block *block, int *error) {
     *error = 0;
     for (int i = WORDS_PER_BLOCK - 1; i >= 0; i--) {
         Word word = block->bits[i];
@@ -131,7 +130,7 @@ Number* block_max(Block *block, int *error) {
     return 0;
 }
 
-Number* block_min(Block *block, int *error) {
+Number *block_min(Block *block, int *error) {
     *error = 0;
     for (int i = 0; i < WORDS_PER_BLOCK; i++) {
         Word word = block->bits[i];
@@ -139,7 +138,7 @@ Number* block_min(Block *block, int *error) {
         Word mask = 1;
         for (int j = 0; j < BITS_PER_WORD; j++) {
             if (word & mask) {
-                return number_add(block->offset, number_get_small(i*BITS_PER_WORD+j));
+                return number_add(block->offset, number_get_small(i * BITS_PER_WORD + j));
             }
             mask <<= 1;
         }
@@ -158,13 +157,13 @@ int block_is_empty(Block *block) {
 }
 
 
-void offset_and_index(Number* x, Number** offset, int *index) {
+void offset_and_index(Number *x, Number **offset, int *index) {
     int idx = number_slice(x, BLOCK_LEN);
-    if(x->size<0 & idx>0){
+    if (x->size < 0 & idx > 0) {
         idx = BITS_PER_BLOCK - idx;
-   }
-   *offset = number_sub(x, number_get_small(idx));
-   *index = idx;
+    }
+    *offset = number_sub(x, number_get_small(idx));
+    *index = idx;
 }
 
 
@@ -191,16 +190,16 @@ IntSet *intset_copy(IntSet *self) {
 }
 
 
-int intset_insert_after(IntSet *set, Number* x, Block **block_ref) {
-	//在*block_ref后面含*block_ref插入x到对应的位置
-    Number* offset;
+int intset_insert_after(IntSet *set, Number *x, Block **block_ref) {
+    //在*block_ref后面含*block_ref插入x到对应的位置
+    Number *offset;
     int index;
     offset_and_index(x, &offset, &index);
 
     Block *block = *block_ref;
 
-    for (; block != set->root && number_cmp(block->offset, offset)<=0; block = block->next) {
-        if (number_cmp(block->offset, offset)==0) {
+    for (; block != set->root && number_cmp(block->offset, offset) <= 0; block = block->next) {
+        if (number_cmp(block->offset, offset) == 0) {
             *block_ref = block;
             number_clear(offset);
             return block_add(block, index);
@@ -221,7 +220,7 @@ int intset_insert_after(IntSet *set, Number* x, Block **block_ref) {
 }
 
 
-int intset_add(IntSet *set, Number* x) {
+int intset_add(IntSet *set, Number *x) {
     Block *block = intset_start(set);
     return intset_insert_after(set, x, &block);
 }
@@ -234,9 +233,9 @@ int intset_item_cmp(const void *a, const void *b) {
 void intset_add_array(IntSet *set, Number **xs, int num) {
     Block *block = intset_start(set);
     Block **block_ref = &block;
-    qsort(xs, num, sizeof(Number*), intset_item_cmp);
+    qsort(xs, num, sizeof(Number *), intset_item_cmp);
     for (int i = 0; i < num; i++) {
-        Number * x = xs[i];
+        Number *x = xs[i];
         intset_insert_after(set, x, block_ref);
     }
 }
@@ -249,12 +248,12 @@ IntSet *intset_new() {
 }
 
 
-Block *intset_get_block(IntSet *set, Number* offset);
+Block *intset_get_block(IntSet *set, Number *offset);
 
 void intset_removeblock(Block *pBlock);
 
-int intset_remove(IntSet *set, Number* x) {
-    Number* offset;
+int intset_remove(IntSet *set, Number *x) {
+    Number *offset;
     int index;
     offset_and_index(x, &offset, &index);
     Block *block = intset_get_block(set, offset);
@@ -270,8 +269,8 @@ int intset_remove(IntSet *set, Number* x) {
 }
 
 
-int intset_has(IntSet *set, Number* x) {
-    Number* offset;
+int intset_has(IntSet *set, Number *x) {
+    Number *offset;
     int index;
     offset_and_index(x, &offset, &index);
     Block *block = intset_get_block(set, offset);
@@ -287,10 +286,10 @@ void intset_removeblock(Block *block) {
 }
 
 
-Block *intset_get_block(IntSet *set, Number* offset) {
+Block *intset_get_block(IntSet *set, Number *offset) {
     for (Block *block = intset_start(set);
-         block != set->root && number_cmp(block->offset, offset)<=0; block = block->next)
-        if (number_cmp(block->offset, offset)==0)
+         block != set->root && number_cmp(block->offset, offset) <= 0; block = block->next)
+        if (number_cmp(block->offset, offset) == 0)
             return block;
     return NULL;
 }
@@ -320,7 +319,7 @@ int intset_is_empty(IntSet *set) {
     return intset_start(set) == set->root;
 }
 
-Number* intsetiter_next(IntSetIter *iter, int *stopped) {
+Number *intsetiter_next(IntSetIter *iter, int *stopped) {
 
     IntSet *set = iter->set;
     Block *b = iter->current_block;
@@ -343,11 +342,11 @@ Number* intsetiter_next(IntSetIter *iter, int *stopped) {
 }
 
 
-Number* intset_max(IntSet *set, int *error) {
+Number *intset_max(IntSet *set, int *error) {
     return block_max(set->root->prev, error);
 }
 
-Number* intset_min(IntSet *set, int *error) {
+Number *intset_min(IntSet *set, int *error) {
     return block_min(set->root->next, error);
 }
 
@@ -359,12 +358,12 @@ IntSet *intset_and(IntSet *self, IntSet *other) {
     Block *rb = intset_start(result_set);
 
     while (sb != self->root && ob != other->root) {
-        if (number_cmp(sb->offset, ob->offset)<0) {
+        if (number_cmp(sb->offset, ob->offset) < 0) {
             sb = sb->next;
-        } else if (number_cmp(sb->offset, ob->offset)>0) {
+        } else if (number_cmp(sb->offset, ob->offset) > 0) {
             ob = ob->next;
         } else {
-            Number* offset = sb->offset;
+            Number *offset = sb->offset;
             Word words[WORDS_PER_BLOCK] = {0};
             int is_empty = 1;
             for (int i = 0; i < WORDS_PER_BLOCK; i++) {
@@ -395,13 +394,13 @@ void intset_merge(IntSet *self, IntSet *other) {
     Block *sb = intset_start(self);
     Block *ob = intset_start(other);
     while (ob != other->root) {
-        if (sb != self->root && number_cmp(sb->offset, ob->offset)==0) {
+        if (sb != self->root && number_cmp(sb->offset, ob->offset) == 0) {
             for (int i = 0; i < WORDS_PER_BLOCK; i++) {
                 sb->bits[i] |= ob->bits[i];
             }
             ob = ob->next;
             sb = sb->next;
-        } else if (sb == self->root || number_cmp(sb->offset, ob->offset)>0) {
+        } else if (sb == self->root || number_cmp(sb->offset, ob->offset) > 0) {
 
             Block *b = block_copy(ob);
 
@@ -412,6 +411,8 @@ void intset_merge(IntSet *self, IntSet *other) {
             sb->prev = b;
 
             ob = ob->next;
+        } else {
+            sb = sb->next;
         }
     }
 }
@@ -430,11 +431,11 @@ IntSet *intset_sub(IntSet *self, IntSet *other) {
 
     while (sb != self->root) {
         Block *block = calloc(1, sizeof(Block));
-        if (ob==other->root || number_cmp(sb->offset, ob->offset)<0) {
+        if (ob == other->root || number_cmp(sb->offset, ob->offset) < 0) {
             block->offset = number_copy(sb->offset);
             memcpy(block->bits, sb->bits, sizeof(sb->bits));
             sb = sb->next;
-        } else if (number_cmp(sb->offset, ob->offset)>0){
+        } else if (number_cmp(sb->offset, ob->offset) > 0) {
             ob = ob->next;
             free(block);
             continue;
@@ -486,7 +487,7 @@ IntSet *intset_xor(IntSet *self, IntSet *other) {
             block->offset = number_copy(sb->offset);
             memcpy(block->bits, sb->bits, sizeof(ob->bits));
             sb = sb->next;
-        } else if (number_cmp(sb->offset, ob->offset)==0) {
+        } else if (number_cmp(sb->offset, ob->offset) == 0) {
             block->offset = number_copy(sb->offset);
             Word words[WORDS_PER_BLOCK] = {0};
             int is_empty = 1;
@@ -502,11 +503,11 @@ IntSet *intset_xor(IntSet *self, IntSet *other) {
                 continue;
             }
             memcpy(block->bits, words, sizeof(words));
-        } else if (number_cmp(sb->offset, ob->offset)>0) {
+        } else if (number_cmp(sb->offset, ob->offset) > 0) {
             block->offset = number_copy(ob->offset);
             memcpy(block->bits, ob->bits, sizeof(ob->bits));
             ob = ob->next;
-        } else if (number_cmp(sb->offset, ob->offset)<0) {
+        } else if (number_cmp(sb->offset, ob->offset) < 0) {
             block->offset = number_copy(sb->offset);
             memcpy(block->bits, sb->bits, sizeof(ob->bits));
             sb = sb->next;
@@ -535,7 +536,7 @@ int intset_equals(IntSet *self, IntSet *other) {
         else if (sb == self->root || ob == other->root) {
             return 0;
         }
-        else if (number_cmp(sb->offset, ob->offset)!=0) {
+        else if (number_cmp(sb->offset, ob->offset) != 0) {
             return 0;
         }
         else {
@@ -558,9 +559,9 @@ int intset_issuperset(IntSet *self, IntSet *other) {
         if (sb == self->root) {
             return 0;
         }
-        else if (number_cmp(sb->offset, ob->offset)<0) {
+        else if (number_cmp(sb->offset, ob->offset) < 0) {
             sb = sb->next;
-        } else if (number_cmp(sb->offset, ob->offset)>0) {
+        } else if (number_cmp(sb->offset, ob->offset) > 0) {
             return 0;
         } else {
             for (int i = 0; i < WORDS_PER_BLOCK; i++) {
@@ -585,9 +586,9 @@ int intset_issubset(IntSet *self, IntSet *other) {
         if (ob == other->root) {
             return 0;
         }
-        else if (number_cmp(sb->offset, ob->offset)>0) {
+        else if (number_cmp(sb->offset, ob->offset) > 0) {
             ob = ob->next;
-        } else if (number_cmp(sb->offset, ob->offset)<0) {
+        } else if (number_cmp(sb->offset, ob->offset) < 0) {
             return 0;
         } else {
             for (int i = 0; i < WORDS_PER_BLOCK; i++) {
@@ -693,7 +694,7 @@ IntSet *intset_get_slice(IntSet *self, int start, int end) {
 }
 
 
-Number* intset_get_item(IntSet *set, int index, int *error) {
+Number *intset_get_item(IntSet *set, int index, int *error) {
     *error = 0;
     Block *b = intset_start(set);
     int sum = 0;
@@ -718,7 +719,7 @@ Number* intset_get_item(IntSet *set, int index, int *error) {
 }
 
 void intset_clear(IntSet *set) {
-    if(set->root == NULL){
+    if (set->root == NULL) {
         return;
     }
     Block *b = set->root->next;

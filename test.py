@@ -223,6 +223,10 @@ class IntSetTestCase(unittest.TestCase):
         s1.update(range(255, 257))
         self.assertEquals(s1.max(), 1<<1000)
 
+        s1 = IntSet(range(10))
+        s1.update(range(1<<100, (1<<100)+5))
+        self.assertEquals(s1.max(), (1<<100)+4)
+
 
     def test_symmetric_difference(self):
 
