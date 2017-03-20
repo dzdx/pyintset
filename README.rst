@@ -4,7 +4,7 @@ pyintset is a set for storing integers.
 
 it's intersection, union and difference the operation faster than the python standard library set, but the add and remove operations slower than the set.
 
-pyintset can store arbitrary length of integer numbers, support Python int and long type
+pyintset can store any length of integer numbers, support Python int and long type
 
 usage
 -----
@@ -59,7 +59,7 @@ method example                                             doc
 ==============================================            =========
 s.add( (<int>|<long>) )                                    Add an Integer to a intset. return None.
 s.remove( (<int>|<long>) )                                 Remove an Integer from a intset. If the Integer is not a member, raise a KeyError.
-s.discard( (<int>|<long>) )                                 Remove an Integer from a intset.\n If the Integer is not a member, do noting."
+s.discard( (<int>|<long>) )                                 Remove an Integer from a intset.\n If the Integer is not a member, do noting.
 s.max()                                                    Get the max Integer in a intset.\n If the intset is empty, raise a ValueError.
 s.min()                                                    Get the min Integer in a intset.\n If the intset is empty, raise a ValueError.
 s.clear()                                                  Remove all elements from this intset.

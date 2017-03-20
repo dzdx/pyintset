@@ -156,6 +156,10 @@ int block_is_empty(Block *block) {
     return 1;
 }
 
+void block_free(Block * block){
+    number_clear(block->offset);
+    free(block);
+}
 
 void offset_and_index(Number *x, Number **offset, int *index) {
     int idx = number_slice(x, BLOCK_LEN);
@@ -282,7 +286,7 @@ int intset_has(IntSet *set, Number *x) {
 void intset_removeblock(Block *block) {
     block->prev->next = block->next;
     block->next->prev = block->prev;
-    free(block);
+    block_free(block);
 }
 
 
@@ -453,7 +457,7 @@ IntSet *intset_sub(IntSet *self, IntSet *other) {
             ob = ob->next;
 
             if (is_empty == 1) {
-                free(block);
+                block_free(block);
                 continue;
             }
             memcpy(block->bits, words, sizeof(words));
@@ -499,7 +503,7 @@ IntSet *intset_xor(IntSet *self, IntSet *other) {
             sb = sb->next;
             ob = ob->next;
             if (is_empty == 1) {
-                free(block);
+                block_free(block);
                 continue;
             }
             memcpy(block->bits, words, sizeof(words));
@@ -724,9 +728,8 @@ void intset_clear(IntSet *set) {
     }
     Block *b = set->root->next;
     while (b != set->root) {
-        number_clear(b->offset);
         Block *next = b->next;
-        free(b);
+        block_free(b);
         b = next;
     }
     free(set->root);
