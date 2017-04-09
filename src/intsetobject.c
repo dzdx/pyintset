@@ -273,7 +273,7 @@ static PyObject *set_remove(IntSetObject *set_obj, PyObject *obj) {
     int r = intset_remove(set_obj->intset, x);
     number_clear(x);
     if (r == 0) {
-        PyErr_Format(PyExc_KeyError, "TODO");
+        PyErr_SetObject(PyExc_KeyError, obj);
         return NULL;
     }
     Py_RETURN_NONE;
