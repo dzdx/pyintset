@@ -149,42 +149,23 @@ static PyObject *set_new(PyTypeObject *type, PyObject *args, PyObject *kwds) {
 
 
 IntSet *get_intset_from_obj(PyObject *obj) {
-    int count = 0;
-    if (PySequence_Check(obj)) {
-        count = PySequence_Length(obj);
-    } else if (PyAnySet_Check(obj)) {
-        count = PySet_Size(obj);
-    } else if (PyDict_Check(obj)) {
-        count = PyDict_Size(obj);
-    }
-    int buffer_size = 1024;
-    Number *buffer[buffer_size];
+   
     PyObject *it, *key;
     it = PyObject_GetIter(obj);
     IntSet *intset = intset_new();
     if (it == NULL)return intset;
-    while (count > 0) {
-        for (int i = 0; i < buffer_size && (key = PyIter_Next(it)) != NULL; i++) {
-            if (!PyIntOrLong_Check(key)) {
+    while((key = PyIter_Next(it)) != NULL) {
+        if (!PyIntOrLong_Check(key)) {
                 Py_DECREF(key);
                 PyErr_Format(PyExc_TypeError, "a Integer is required");
                 Py_DECREF(it);
                 return intset;
-            }
-            Number *x = PyInt_AsNumber(key);
-            buffer[i] = x;
-            Py_DECREF(key);
-        }
-        if (count < buffer_size) {
-            intset_add_array(intset, buffer, count);
-        } else {
-            intset_add_array(intset, buffer, buffer_size);
-        }
-        for (int i = 0; i < MIN(count, buffer_size); i++) {
-            number_clear(buffer[i]);
-        }
-        count -= buffer_size;
+        } 
+         Number *x = PyInt_AsNumber(key);
+        Py_DECREF(key);
+        intset_add(intset, x);
     }
+
     Py_DECREF(it);
     return intset;
 };

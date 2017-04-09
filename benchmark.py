@@ -49,16 +49,16 @@ class IntSetBenchmark(object):
 
     @benchmark_wrap
     def benchmark_add(self):
-        l1 = random.sample(xrange(10000), 2000)
-        v = 10001
+        l1 = random.sample(xrange(1000000), 200000)
+        v = 1000001
         for clz in clzs:
             s = clz(l1)
             yield lambda:s.add(v)
 
     @benchmark_wrap
     def benchmark_discard(self):
-        l1 = random.sample(xrange(10000), 2000)
-        v = 2000
+        l1 = random.sample(xrange(1000000), 200000)
+        v = 200000
         for clz in clzs:
             s = clz(l1)
             yield lambda:s.discard(v)

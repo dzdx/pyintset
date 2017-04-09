@@ -23,12 +23,13 @@ typedef struct B {
     Number * offset;
     Word bits[WORDS_PER_BLOCK];
     struct B *prev;
-    struct B *next;
-
+    struct B **nexts;
+    int level;
 } Block;
 
 typedef struct {
     Block *root;
+    int level;
 } IntSet;
 
 
@@ -42,8 +43,6 @@ typedef struct {
 IntSet *intset_copy(IntSet *set);
 
 IntSet *intset_new();
-
-void intset_add_array(IntSet *set, Number **xs, int num);
 
 int intset_add(IntSet *set, Number* x);
 
