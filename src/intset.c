@@ -163,7 +163,7 @@ void block_free(Block * block){
 
 void offset_and_index(Number *x, Number **offset, int *index) {
     int idx = number_slice(x, BLOCK_LEN);
-    if (x->size < 0 & idx > 0) {
+    if ((x->size < 0) & (idx > 0)) {
         idx = BITS_PER_BLOCK - idx;
     }
     *offset = number_sub(x, number_get_small(idx));
@@ -245,7 +245,7 @@ void intset_add_array(IntSet *set, Number **xs, int num) {
 }
 
 
-IntSet *intset_new() {
+IntSet *intset_new(void) {
     IntSet *set = malloc(sizeof(IntSet));
     set->root = NULL;
     return set;

@@ -8,15 +8,15 @@
 
 #ifdef UINT64_MAX
 typedef uint64_t Word;
-static const int BITS_PER_WORD = 64;
+#define BITS_PER_WORD 64
 #else
 typedef uint32_t Word;
-static const int BITS_PER_WORD = 32;
+#define BITS_PER_WORD 32
 #endif
 
-static const int BLOCK_LEN = 8;
-static const int BITS_PER_BLOCK = 1<<8;
-static const int WORDS_PER_BLOCK = (BITS_PER_BLOCK / BITS_PER_WORD);
+#define BLOCK_LEN  8
+#define BITS_PER_BLOCK (1<<8)
+#define WORDS_PER_BLOCK (BITS_PER_BLOCK / BITS_PER_WORD)
 
 
 typedef struct B {
@@ -41,7 +41,7 @@ typedef struct {
 
 IntSet *intset_copy(IntSet *set);
 
-IntSet *intset_new();
+IntSet *intset_new(void);
 
 void intset_add_array(IntSet *set, Number **xs, int num);
 
