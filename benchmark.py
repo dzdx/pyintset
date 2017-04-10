@@ -36,7 +36,7 @@ class IntSetBenchmark(object):
         uname_system, _, uname_release, uname_version, _, uname_processor = platform.uname()
         print "Test machine:"
         print "^^^^^^^^^^^^^^"
-	print ""
+        print ""
         print " ".join([uname_system, uname_release, uname_processor, uname_version])
         print "{:=<40} {:=<40} {:=<40}".format("", "", "")
         print "{:<40} {:<40} {:<40}".format("benchmark", "IntSet", "set")
