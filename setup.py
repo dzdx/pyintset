@@ -7,5 +7,5 @@ try:
 except(OSError):
     pass
 
-setup(name="intset", version='1.0',
+setup(name="pyintset", version='1.0',
       ext_modules=[Extension('intset', ['./src/intsetobject.c', './src/intset.c', "./src/number.c"],extra_compile_args=['-std=c99'] )])
