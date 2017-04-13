@@ -7,16 +7,33 @@
 
 #include "intset.h"
 
+#if PY_MAJOR_VERSION >= 3
+#define PY3
+#endif
+
+
 #define MIN(a, b) (a>b?b:a)
 #define ABS(x) ((x) < 0 ? -(x) : (x))
 
-#define PyIntOrLong_Check(op)       (PyInt_Check(op) || PyLong_Check(op))
 
+#ifdef PY3
+#define PyNumber_Check(op)       (PyLong_Check(op))
+#else
+#define PyNumber_Check(op)       (PyInt_Check(op) || PyLong_Check(op))
+#endif
+
+
+#ifdef PY3
+#define PyString_FromFormat PyUnicode_FromFormat
+#endif
 
 Number *PyInt_AsNumber(PyObject *obj) {
+#ifndef PY3
     if (PyInt_Check(obj)) {
         return number_from_long(PyInt_AsLong(obj));
-    } else if (PyLong_Check(obj)) {
+    }
+#endif
+    if (PyLong_Check(obj)) {
         int size = Py_SIZE(obj);
         Number *n = number_new(size);
         PyLongObject *v = (PyLongObject *) obj;
@@ -30,14 +47,15 @@ Number *PyInt_AsNumber(PyObject *obj) {
 
 PyObject *PyInt_FromNumber(Number *obj) {
     int size = ABS(obj->size);
-    if (ABS(obj->size) * PyLong_SHIFT >= 64) {
-        PyLongObject *v = PyObject_NEW_VAR(PyLongObject, &PyLong_Type, size);
-        v->ob_size = obj->size;
-        memcpy(v->ob_digit, obj->digits, size * sizeof(digit));
-        return (PyObject *) v;
-    } else {
+#ifndef PY3
+    if (ABS(obj->size) * PyLong_SHIFT < 64) {
         return PyInt_FromLong(number_as_long(obj));
     }
+#endif
+    PyLongObject *v = PyObject_NEW_VAR(PyLongObject, &PyLong_Type, size);
+    Py_SIZE(v) = obj->size;
+    memcpy(v->ob_digit, obj->digits, size * sizeof(digit));
+    return (PyObject *) v;
 }
 
 typedef struct {
@@ -64,7 +82,6 @@ static void iter_dealloc(IterObject *iter_obj) {
     iter_obj->iter = NULL;
     PyObject_Del(iter_obj);
 }
-
 
 static PyMethodDef iter_methods[] = {
         {NULL}
@@ -129,7 +146,6 @@ typedef struct {
 
 
 static void set_dealloc(IntSetObject *set_obj) {
-
     Free_IntSet(set_obj->intset)
     Py_TYPE(set_obj)->tp_free(set_obj);
 };
@@ -165,7 +181,7 @@ IntSet *get_intset_from_obj(PyObject *obj) {
     if (it == NULL)return intset;
     while (count > 0) {
         for (int i = 0; i < buffer_size && (key = PyIter_Next(it)) != NULL; i++) {
-            if (!PyIntOrLong_Check(key)) {
+            if (!PyNumber_Check(key)) {
                 Py_DECREF(key);
                 PyErr_Format(PyExc_TypeError, "a Integer is required");
                 Py_DECREF(it);
@@ -232,7 +248,7 @@ static PyObject *set_repr(IntSetObject *set_obj) {
     if (status != 0) {
         if (status < 0)
             return NULL;
-        return PyString_FromFormat("%s(...)", set_obj->ob_type->tp_name);
+        return PyString_FromFormat("%s(...)", Py_TYPE(set_obj)->tp_name);
     }
 
     keys = PySequence_List((PyObject *) set_obj);
@@ -243,9 +259,13 @@ static PyObject *set_repr(IntSetObject *set_obj) {
     if (listrepr == NULL)
         goto done;
 
-    result = PyString_FromFormat("%s(%s)", set_obj->ob_type->tp_name,
+#ifdef PY3
+    result = PyUnicode_FromFormat("%s(%U)", Py_TYPE(set_obj)->tp_name, listrepr);
+#else
+    result = PyString_FromFormat("%s(%s)", Py_TYPE(set_obj)->tp_name,
                                  PyString_AS_STRING(listrepr));
-    Py_DECREF(listrepr);
+#endif
+   Py_DECREF(listrepr);
     done:
     Py_ReprLeave((PyObject *) set_obj);
     return result;
@@ -253,7 +273,7 @@ static PyObject *set_repr(IntSetObject *set_obj) {
 
 
 static PyObject *set_add(IntSetObject *set_obj, PyObject *obj) {
-    if (!PyIntOrLong_Check(obj)) {
+    if (!PyNumber_Check(obj)) {
         PyErr_Format(PyExc_TypeError, "%s", Py_TYPE(obj)->tp_name);
         return NULL;
     }
@@ -265,7 +285,7 @@ static PyObject *set_add(IntSetObject *set_obj, PyObject *obj) {
 PyDoc_STRVAR(add_doc, "add an Integer to a intset.\n return None.");
 
 static PyObject *set_remove(IntSetObject *set_obj, PyObject *obj) {
-    if (!PyIntOrLong_Check(obj)) {
+    if (!PyNumber_Check(obj)) {
         PyErr_Format(PyExc_TypeError, "%s", Py_TYPE(obj)->tp_name);
         return NULL;
     }
@@ -282,7 +302,7 @@ PyDoc_STRVAR(remove_doc, "remove an Integer from a intset.\n If the Integer is n
 
 static PyObject *set_discard(IntSetObject *set_obj, PyObject *obj) {
 
-    if (!PyIntOrLong_Check(obj)) {
+    if (!PyNumber_Check(obj)) {
         PyErr_Format(PyExc_TypeError, "%s", Py_TYPE(obj)->tp_name);
         return NULL;
     }
@@ -300,7 +320,7 @@ static Py_ssize_t set_len(PyObject *set_obj) {
 }
 
 static int set_contains(IntSetObject *set_obj, PyObject *obj) {
-    if (!PyIntOrLong_Check(obj)) {
+    if (!PyNumber_Check(obj)) {
         PyErr_Format(PyExc_TypeError, "%s", Py_TYPE(obj)->tp_name);
         return -1;
     }
@@ -308,12 +328,6 @@ static int set_contains(IntSetObject *set_obj, PyObject *obj) {
     int r = intset_has(set_obj->intset, x);
     number_clear(x);
     return r;
-}
-
-
-static PyObject *set_get_slice(IntSetObject *set_obj, Py_ssize_t ilow, Py_ssize_t ihight) {
-    IntSet *intset = intset_get_slice(set_obj->intset, ilow, ihight);
-    return make_new_set(Py_TYPE(set_obj), intset);
 }
 
 static PyObject *set_get_item(IntSetObject *set_obj, Py_ssize_t i) {
@@ -328,6 +342,48 @@ static PyObject *set_get_item(IntSetObject *set_obj, Py_ssize_t i) {
     return r;
 
 }
+
+static PyObject *set_get_slice(IntSetObject *set_obj, Py_ssize_t ilow, Py_ssize_t ihight) {
+    IntSet *intset = intset_get_slice(set_obj->intset, ilow, ihight);
+    return make_new_set(Py_TYPE(set_obj), intset);
+}
+
+
+
+static PyObject *set_subscript(IntSetObject *set_obj, PyObject *item) {
+    if(PyIndex_Check(item)){
+        Py_ssize_t i;
+        i = PyNumber_AsSsize_t(item, PyExc_IndexError);
+        if (i == -1 && PyErr_Occurred())
+            return NULL;
+         if (i < 0)
+            i += intset_len(set_obj->intset);
+         return set_get_item(set_obj, i);
+    }else if(PySlice_Check(item)){
+        Py_ssize_t start, stop, step;
+#ifdef PY3
+        if (PySlice_GetIndices(item, intset_len(set_obj->intset),
+                    &start, &stop, &step) < 0) {
+#else
+        if (PySlice_GetIndices((PySliceObject*)item, intset_len(set_obj->intset),
+                    &start, &stop, &step) < 0) {
+#endif
+            return NULL;
+        }
+        if(step==1){
+            return set_get_slice(set_obj, start, stop);
+        }else{
+            PyErr_Format(PyExc_KeyError, "only support step=1");
+            return NULL;
+        }
+    }else{
+         PyErr_Format(PyExc_TypeError,
+                 "intset indices must by integers, not %.200s", Py_TYPE(item)->tp_name);
+         return NULL;
+    }
+}
+
+
 
 
 static PyObject *set_max(IntSetObject *set_obj) {
@@ -357,21 +413,38 @@ static PyObject *set_min(IntSetObject *set_obj) {
 PyDoc_STRVAR(min_doc, "Get the min Integer in a intset.\n If the intset is empty, raise a ValueError.");
 
 static PyObject *set_or(IntSetObject *set_obj, PyObject *other) {
+    if(!IntSetObj_Check(other)){
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for |: 'IntSet' and '%s'", Py_TYPE(other)->tp_name);
+        return NULL;
+    }
     IntSet *s = intset_or(set_obj->intset, ((IntSetObject *) other)->intset);
     return make_new_set(Py_TYPE(set_obj), s);
 }
 
 static PyObject *set_and(IntSetObject *set_obj, PyObject *other) {
+    if(!IntSetObj_Check(other)){
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for &: 'IntSet' and '%s'", Py_TYPE(other)->tp_name);
+        return NULL;
+    }
     IntSet *s = intset_and(set_obj->intset, ((IntSetObject *) other)->intset);
     return make_new_set(Py_TYPE(set_obj), s);
 }
 
 static PyObject *set_sub(IntSetObject *set_obj, PyObject *other) {
+    if(!IntSetObj_Check(other)){
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for -: 'IntSet' and '%s'", Py_TYPE(other)->tp_name);
+        return NULL;
+    }
+
     IntSet *s = intset_sub(set_obj->intset, ((IntSetObject *) other)->intset);
     return make_new_set(Py_TYPE(set_obj), s);
 }
 
 static PyObject *set_xor(IntSetObject *set_obj, PyObject *other) {
+    if(!IntSetObj_Check(other)){
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for ^: 'IntSet' and '%s'", Py_TYPE(other)->tp_name);
+        return NULL;
+    }
     IntSet *s = intset_xor(set_obj->intset, ((IntSetObject *) other)->intset);
     return make_new_set(Py_TYPE(set_obj), s);
 }
@@ -607,7 +680,7 @@ PyDoc_STRVAR(issuperset_doc, "Report whether this intset contains another intset
 
 
 static PyObject *set_direct_contains(IntSetObject *set_obj, PyObject *obj) {
-    if (!PyIntOrLong_Check(obj)) {
+    if (!PyNumber_Check(obj)) {
         PyErr_Format(PyExc_TypeError, "%s", Py_TYPE(obj)->tp_name);
         return NULL;
     }
@@ -628,36 +701,36 @@ static PyObject *set_richcompare(IntSetObject *set_obj, PyObject *obj, int op) {
     switch (op) {
         case Py_EQ:
             if (intset_equals(set_obj->intset, other->intset)) {
-                return Py_True;
+                Py_RETURN_TRUE;
             }
-            return Py_False;
+            Py_RETURN_FALSE;
         case Py_NE:
             if (!intset_equals(set_obj->intset, other->intset)) {
-                return Py_True;
+                Py_RETURN_TRUE;
             }
-            return Py_False;
+            Py_RETURN_FALSE;
         case Py_LE:
             if (intset_issubset(set_obj->intset, other->intset))
-                return Py_True;
-            return Py_False;
+                Py_RETURN_TRUE;
+            Py_RETURN_FALSE;
         case Py_GE:
             if (intset_issuperset(set_obj->intset, other->intset))
-                return Py_True;
-            return Py_False;
+                Py_RETURN_TRUE;
+            Py_RETURN_FALSE;
         case Py_LT:
             if (intset_len(set_obj->intset) >= intset_len(other->intset))
-                return Py_False;
+                Py_RETURN_FALSE;
             if (intset_issubset(set_obj->intset, other->intset))
-                return Py_True;
-            return Py_False;
+                Py_RETURN_TRUE;
+            Py_RETURN_FALSE;
         case Py_GT:
             if (intset_len(set_obj->intset) <= intset_len(other->intset))
-                return Py_False;
+                Py_RETURN_FALSE;
             if (intset_issuperset(set_obj->intset, other->intset))
-                return Py_True;
-            return Py_False;
+                Py_RETURN_TRUE;
+            Py_RETURN_FALSE;
     }
-    PyErr_Format(PyExc_TypeError, "not support action");
+    PyErr_Format(PyExc_TypeError, "%s", Py_TYPE(obj)->tp_name);
     return NULL;
 }
 
@@ -686,7 +759,9 @@ static PyNumberMethods set_as_number = {
         0,                                  /*nb_add*/
         (binaryfunc) set_sub,               /*nb_subtract*/
         0,                                  /*nb_multiply*/
+#ifndef PY3
         0,                                  /*nb_divide*/
+#endif
         0,                                  /*nb_remainder*/
         0,                                  /*nb_divmod*/
         0,                                  /*nb_power*/
@@ -700,23 +775,6 @@ static PyNumberMethods set_as_number = {
         (binaryfunc) set_and,               /*nb_and*/
         (binaryfunc) set_xor,               /*nb_xor*/
         (binaryfunc) set_or,                /*nb_or*/
-        0,                                  /*nb_coerce*/
-        0,                                  /*nb_int*/
-        0,                                  /*nb_long*/
-        0,                                  /*nb_float*/
-        0,                                  /*nb_oct*/
-        0,                                  /*nb_hex*/
-        0,                                  /*nb_inplace_add*/
-        0,                                  /*nb_inplace_subtract*/
-        0,                                  /*nb_inplace_multiply*/
-        0,                                  /*nb_inplace_divide*/
-        0,                                  /*nb_inplace_remainder*/
-        0,                                  /*nb_inplace_power*/
-        0,                                  /*nb_inplace_lshift*/
-        0,                                  /*nb_inplace_rshift*/
-        0,                                  /*nb_inplace_and*/
-        0,                                  /*nb_inplace_xor*/
-        0,                                  /*nb_inplace_or*/
 };
 
 
@@ -729,6 +787,12 @@ static PySequenceMethods set_as_sequence = {
         0,                                  /* sq_ass_item */
         0,                                  /* sq_ass_slice */
         (objobjproc) set_contains,          /* sq_contains */
+};
+
+static PyMappingMethods set_as_mapping = {
+     0,
+    (binaryfunc)set_subscript,
+    0
 };
 
 PyDoc_STRVAR(intset_doc,
@@ -750,7 +814,7 @@ static PyTypeObject IntSetObject_Type = {
         (reprfunc) set_repr,               /* tp_repr */
         &set_as_number,                    /* tp_as_number */
         &set_as_sequence,                  /* tp_as_sequence */
-        0,                                 /* tp_as_mapping */
+        &set_as_mapping,                                 /* tp_as_mapping */
         PyObject_HashNotImplemented,       /* tp_hash */
         0,                                 /* tp_call */
         0,                                 /* tp_str */
@@ -782,15 +846,45 @@ static PyMethodDef module_methods[] = {
         {NULL}  /* Sentinel */
 };
 
-PyMODINIT_FUNC initintset(void) {
+#ifdef PY3
+
+static struct PyModuleDef moduledef = {
+    PyModuleDef_HEAD_INIT,
+    "intset",
+    0,              /* m_doc */
+    -1,             /* m_size */
+    module_methods,   /* m_methods */
+    NULL,           /* m_reload */
+    NULL,           /* m_traverse */
+    NULL,           /* m_clear */
+    NULL            /* m_free */
+};
+
+#define PYMODINITFUNC       PyObject *PyInit_intset(void)
+#define PYMODULE_CREATE()   PyModule_Create(&moduledef)
+#define MODINITERROR        return NULL
+
+#else
+
+#define PYMODINITFUNC       PyMODINIT_FUNC initintset(void)
+#define PYMODULE_CREATE()   Py_InitModule("intset", module_methods);
+#define MODINITERROR        return
+
+#endif
+
+PYMODINITFUNC
+{
     PyObject *m;
     IntSetObject_Type.tp_new = PyType_GenericNew;
     if (PyType_Ready(&IntSetObject_Type) < 0)
-        return;
-
-    m = Py_InitModule3("intset", module_methods,
-                       "intset write in c.");
-
+        MODINITERROR;
+    m = PYMODULE_CREATE();
+    if(m == NULL){
+         MODINITERROR;
+    }
     Py_INCREF(&IntSetObject_Type);
     PyModule_AddObject(m, "IntSet", (PyObject * ) & IntSetObject_Type);
+    #ifdef PY3
+    return m;
+    #endif
 };
