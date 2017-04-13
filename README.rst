@@ -1,10 +1,29 @@
+===============================
 pyintset
-=========
+===============================
+
+
+.. image:: https://img.shields.io/pypi/v/pyintset.svg
+        :target: https://pypi.python.org/pypi/pyintset
+
+.. image:: https://img.shields.io/travis/dzdx/pyintset.svg
+        :target: https://travis-ci.org/dzdx/pyintset
+
+.. image:: https://pyup.io/repos/github/dzdx/pyintset/shield.svg
+     :target: https://pyup.io/repos/github/dzdx/pyintset/
+     :alt: Updates
+
+
 pyintset is a set for storing integers.
 
 it's intersection, union and difference the operation faster than the python standard library set, but the add and remove operations slower than the set.
 
 pyintset can store any length of integer numbers, support Python int and long type
+
+
+* Free software: MIT license
+
+
 
 usage
 -----
@@ -146,3 +165,13 @@ memory profile
         24   35.652 MiB    0.000 MiB   @profile
         25                             def create_long_sets():
         26  158.652 MiB  123.000 MiB       data = [set(long_items) for _ in range(1000)]
+
+
+Credits
+---------
+
+This package was created with Cookiecutter_ and the `audreyr/cookiecutter-pypackage`_ project template.
+
+.. _Cookiecutter: https://github.com/audreyr/cookiecutter
+.. _`audreyr/cookiecutter-pypackage`: https://github.com/audreyr/cookiecutter-pypackage
+

@@ -1,11 +1,41 @@
-from distutils.core import setup, Extension
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
-import shutil
+from setuptools import setup, Extension
 
-try:
-    shutil.rmtree("./build")
-except(OSError):
-    pass
+with open('README.rst') as readme_file:
+    readme = readme_file.read()
 
-setup(name="pyintset", version='1.0',
-      ext_modules=[Extension('intset', ['./src/intsetobject.c', './src/intset.c', "./src/number.c"],extra_compile_args=['-std=c99'] )])
+with open('HISTORY.rst') as history_file:
+    history = history_file.read()
+
+extension = Extension('intset', 
+    sources=['./src/intsetobject.c', './src/intset.c', "./src/number.c"],
+    extra_compile_args=['-std=c99'] 
+)
+
+setup(
+    name='pyintset',
+    version='0.1.0',
+    long_description=readme + '\n\n' + history,
+    author="lixudong",
+    author_email='dzidaxie@gmail.com',
+    url='https://github.com/dzdx/pyintset',
+    include_package_data=True,
+    license="MIT license",
+    zip_safe=False,
+    keywords='intset',
+    ext_modules=[extension],
+    classifiers=[
+        'Development Status :: 2 - Pre-Alpha',
+        'Intended Audience :: Developers',
+        'License :: OSI Approved :: MIT License',
+        'Natural Language :: English',
+        'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.3',
+        'Programming Language :: Python :: 3.4',
+        'Programming Language :: Python :: 3.5',
+    ],
+    test_suite='tests.test_intset',
+)

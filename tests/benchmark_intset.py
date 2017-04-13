@@ -1,11 +1,8 @@
 # coding=utf-8
 
 import platform
-import time
 import timeit
-import sys
 import inspect
-import StringIO
 
 from intset import IntSet
 import random
@@ -20,7 +17,7 @@ def benchmark_wrap(func):
     def _(*args, **kwargs):
         durations = []
         for caller in  func(*args, **kwargs):
-            durations.append(min(timeit.repeat(caller, repeat=10, number=10000)))
+            durations.append(min(timeit.repeat(caller, repeat=3, number=10000)))
         benchmark_results.append((func.__name__, durations))
     return _
 
@@ -34,22 +31,22 @@ class IntSetBenchmark(object):
 
     def output_report(self):
         uname_system, _, uname_release, uname_version, _, uname_processor = platform.uname()
-        print "Test machine:"
-        print "^^^^^^^^^^^^^^"
-        print ""
-        print " ".join([uname_system, uname_release, uname_processor, uname_version])
-        print "{:=<40} {:=<40} {:=<40}".format("", "", "")
-        print "{:<40} {:<40} {:<40}".format("benchmark", "IntSet", "set")
-        print "{:=<40} {:=<40} {:=<40}".format("", "", "")
+        print("Test machine:")
+        print("^^^^^^^^^^^^^^")
+        print("")
+        print(" ".join([uname_system, uname_release, uname_processor, uname_version]))
+        print("{:=<40} {:=<40} {:=<40}".format("", "", ""))
+        print("{:<40} {:<40} {:<40}".format("benchmark", "IntSet", "set"))
+        print("{:=<40} {:=<40} {:=<40}".format("", "", ""))
         for name, durations in benchmark_results:
-            print "{:<40} {:<40} {:<40}".format(name, durations[0], durations[1])
-        print "{:=<40} {:=<40} {:=<40}".format("", "", "")
+            print("{:<40} {:<40} {:<40}".format(name, durations[0], durations[1]))
+        print("{:=<40} {:=<40} {:=<40}".format("", "", ""))
 
 
 
     @benchmark_wrap
     def benchmark_add(self):
-        l1 = random.sample(xrange(10000), 2000)
+        l1 = random.sample(range(10000), 2000)
         v = 10001
         for clz in clzs:
             s = clz(l1)
@@ -57,7 +54,7 @@ class IntSetBenchmark(object):
 
     @benchmark_wrap
     def benchmark_discard(self):
-        l1 = random.sample(xrange(10000), 2000)
+        l1 = random.sample(range(10000), 2000)
         v = 2000
         for clz in clzs:
             s = clz(l1)
@@ -66,8 +63,8 @@ class IntSetBenchmark(object):
 
     @benchmark_wrap
     def benchmark_intersection(self):
-        l1 = random.sample(xrange(10000), 2000)
-        l2 = random.sample(xrange(10000), 2000)
+        l1 = random.sample(range(10000), 2000)
+        l2 = random.sample(range(10000), 2000)
         for clz in clzs:
             s1 = clz(l1)
             s2 = clz(l2)
@@ -76,8 +73,8 @@ class IntSetBenchmark(object):
 
     @benchmark_wrap
     def benchmark_difference(self):
-        l1 = random.sample(xrange(10000), 2000)
-        l2 = random.sample(xrange(10000), 2000)
+        l1 = random.sample(range(10000), 2000)
+        l2 = random.sample(range(10000), 2000)
         for clz in clzs:
             s1 = clz(l1)
             s2 = clz(l2)
@@ -86,8 +83,8 @@ class IntSetBenchmark(object):
 
     @benchmark_wrap
     def benchmark_union(self):
-        l1 = random.sample(xrange(10000), 2000)
-        l2 = random.sample(xrange(10000), 2000)
+        l1 = random.sample(range(10000), 2000)
+        l2 = random.sample(range(10000), 2000)
         for clz in clzs:
             s1 = clz(l1)
             s2 = clz(l2)
@@ -95,8 +92,8 @@ class IntSetBenchmark(object):
 
     @benchmark_wrap
     def benchmark_symmetric_difference(self):
-        l1 = random.sample(xrange(10000), 2000)
-        l2 = random.sample(xrange(10000), 2000)
+        l1 = random.sample(range(10000), 2000)
+        l2 = random.sample(range(10000), 2000)
         for clz in clzs:
             s1 = clz(l1)
             s2 = clz(l2)
@@ -104,15 +101,15 @@ class IntSetBenchmark(object):
 
     @benchmark_wrap
     def benchmark_update(self):
-        l1 = random.sample(xrange(10000), 2000)
-        l2 = random.sample(xrange(10000), 200)
+        l1 = random.sample(range(10000), 2000)
+        l2 = random.sample(range(10000), 200)
         for clz in clzs:
             s1 = clz(l1)
             yield lambda:s1.update(l2)
 
     @benchmark_wrap
     def benchmark_issubset(self):
-        l1 = random.sample(xrange(10000), 2000)
+        l1 = random.sample(range(10000), 2000)
         l2 = random.sample(l1, 300)
         for clz in (IntSet, set):
             s1 = clz(l1)
@@ -121,7 +118,7 @@ class IntSetBenchmark(object):
 
     @benchmark_wrap
     def benchmark_issuperset(self):
-        l1 = random.sample(xrange(10000), 2000)
+        l1 = random.sample(range(10000), 2000)
         l2 = random.sample(l1, 300)
         for clz in clzs:
             s1 = clz(l1)
