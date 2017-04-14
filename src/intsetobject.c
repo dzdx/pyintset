@@ -44,10 +44,12 @@ Number *PyNumber_AsNumber(PyObject *obj) {
         memcpy(n->digits, v->ob_digit, ABS(size) * sizeof(digit));
         return n;
         #else
-        int size  = (ob_size-1)/NUM_SCALE+1;
+        int size  = (ABS(ob_size)-1)/NUM_SCALE+1;
+        if(ob_size<0)
+            size = -size;
         Number *n = number_new(size);
         PyLongObject *v = (PyLongObject *) obj;
-        for(int i=0;i<size;i++){
+        for(int i=0;i<ABS(size);i++){
             num x=0;
             for(int j=0;j<NUM_SCALE;j++){
                 int z = NUM_SCALE*i+j;
@@ -88,11 +90,13 @@ PyObject *PyNumber_FromNumber(Number *number) {
    #else
     int ob_size = size*NUM_SCALE;
     PyLongObject *v = PyObject_NEW_VAR(PyLongObject, &PyLong_Type, ob_size);
+    if(number->size<0)
+        ob_size = -ob_size;
     Py_SIZE(v) = ob_size;
     for(int i=0;i<size;i++){
         for(int j=0;j<NUM_SCALE;j++){
             digit x = (digit)(number->digits[i]>>(PyLong_SHIFT*j));
-             v->ob_digit[NUM_SCALE*i+j] = x;
+            v->ob_digit[NUM_SCALE*i+j] = x;
         }
     }
     v= pynumber_normalize(v);
