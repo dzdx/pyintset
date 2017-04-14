@@ -8,10 +8,7 @@ pyintset
 
 .. image:: https://img.shields.io/travis/dzdx/pyintset.svg
         :target: https://travis-ci.org/dzdx/pyintset
-
-.. image:: https://pyup.io/repos/github/dzdx/pyintset/shield.svg
-     :target: https://pyup.io/repos/github/dzdx/pyintset/
-     :alt: Updates
+        :alt: Updates
 
 
 pyintset is a set for storing integers.
