@@ -9,9 +9,9 @@ with open('README.rst') as readme_file:
 with open('HISTORY.rst') as history_file:
     history = history_file.read()
 
-extension = Extension('intset', 
+extension = Extension('intset',
     sources=['./src/intsetobject.c', './src/intset.c', "./src/number.c"],
-    extra_compile_args=['-std=c99'] 
+    extra_compile_args=['-std=c99']
 )
 
 setup(
@@ -37,5 +37,5 @@ setup(
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
     ],
-    test_suite='tests.test_intset',
+    test_suite='tests.test',
 )

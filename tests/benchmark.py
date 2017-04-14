@@ -1,5 +1,6 @@
 # coding=utf-8
 
+import sys
 import platform
 import timeit
 import inspect
@@ -33,8 +34,12 @@ class IntSetBenchmark(object):
         uname_system, _, uname_release, uname_version, _, uname_processor = platform.uname()
         print("Test machine:")
         print("^^^^^^^^^^^^^^")
-        print("")
         print(" ".join([uname_system, uname_release, uname_processor, uname_version]))
+        print("")
+        print("Python Versions:")
+        print("^^^^^^^^^^^^^^")
+        print(" ".join([platform.python_implementation(), sys.version.replace("\n", "")]))
+        print("")
         print("{:=<40} {:=<40} {:=<40}".format("", "", ""))
         print("{:<40} {:<40} {:<40}".format("benchmark", "IntSet", "set"))
         print("{:=<40} {:=<40} {:=<40}".format("", "", ""))
