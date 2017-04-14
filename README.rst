@@ -106,21 +106,20 @@ benchmark
 --------------
 Test machine:
 ^^^^^^^^^^^^^^
-Darwin 16.0.0 i386 Darwin Kernel Version 16.0.0: Mon Aug 29 17:56:20 PDT 2016; root:xnu-3789.1.32~3/RELEASE_X86_64
 
-
+Linux 3.2.0-23-generic x86_64 #36-Ubuntu SMP Tue Apr 10 20:39:51 UTC 2012
 ======================================== ======================================== ========================================
 benchmark                                IntSet                                   set
 ======================================== ======================================== ========================================
-benchmark_add                            0.00987386703491                         0.00213813781738
-benchmark_difference                     0.183174848557                           1.37597703934
-benchmark_discard                        0.00622200965881                         0.00212502479553
-benchmark_intersection                   0.18705201149                            1.93599200249
-benchmark_issubset                       0.00588011741638                         0.0320630073547
-benchmark_issuperset                     0.006422996521                           0.0315799713135
-benchmark_symmetric_difference           0.176005125046                           2.32426595688
-benchmark_union                          0.182527065277                           1.96527099609
-benchmark_update                         1.29842996597                            0.065318107605
+benchmark_add                            0.00880289077759                         0.00162696838379
+benchmark_difference                     0.0504441261292                          1.33779001236
+benchmark_discard                        0.00474500656128                         0.00129580497742
+benchmark_intersection                   0.046571969986                           2.31110310555
+benchmark_issubset                       0.00489616394043                         0.032782793045
+benchmark_issuperset                     0.00362014770508                         0.0322461128235
+benchmark_symmetric_difference           0.0476529598236                          2.35099697113
+benchmark_union                          0.0447359085083                          1.9603497982
+benchmark_update                         0.600033998489                           0.0561220645905
 ======================================== ======================================== ========================================
 
 memory profile
