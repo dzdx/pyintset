@@ -18,7 +18,7 @@ setup(
     name='pyintset',
     version='0.1.0',
     long_description=readme + '\n\n' + history,
-    author="lixudong",
+    author="dzdx",
     author_email='dzidaxie@gmail.com',
     url='https://github.com/dzdx/pyintset',
     include_package_data=True,
