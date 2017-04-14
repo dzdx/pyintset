@@ -22,10 +22,10 @@ script: tox -e ${TOXENV}
 deploy:
   provider: pypi
   distributions: sdist bdist_wheel
-  user: "dzdx"
-  password: "xxx"
-    secure: "dzidaxie"
+  user: dzdx
+  password:
+    secure: xxxxx
   on:
-    branch: release
+    tags: true
     repo: dzdx/pyintset
     condition: $TOXENV == py27
