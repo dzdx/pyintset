@@ -55,6 +55,7 @@ test: ## run tests quickly with the default Python
 		python setup.py test
 
 test-all: ## run tests on every Python version with tox
+	rm -rf .tox/
 	tox
 
 coverage: ## check code coverage quickly with the default Python

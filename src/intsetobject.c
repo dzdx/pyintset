@@ -15,6 +15,8 @@
 #define MIN(a, b) (a>b?b:a)
 #define ABS(x) ((x) < 0 ? -(x) : (x))
 
+#define NUM_SCALE (NUM_SHIFT/PyLong_SHIFT)
+
 
 #ifdef PY3
 #define PyNumber_Check(op)       (PyLong_Check(op))
@@ -27,35 +29,76 @@
 #define PyString_FromFormat PyUnicode_FromFormat
 #endif
 
-Number *PyInt_AsNumber(PyObject *obj) {
+Number *PyNumber_AsNumber(PyObject *obj) {
 #ifndef PY3
     if (PyInt_Check(obj)) {
         return number_from_long(PyInt_AsLong(obj));
     }
 #endif
     if (PyLong_Check(obj)) {
-        int size = Py_SIZE(obj);
+        int ob_size = Py_SIZE(obj);
+        #if NUM_SCALE == 1
+        int size  = ob_size;
         Number *n = number_new(size);
         PyLongObject *v = (PyLongObject *) obj;
         memcpy(n->digits, v->ob_digit, ABS(size) * sizeof(digit));
         return n;
+        #else
+        int size  = (ob_size-1)/NUM_SCALE+1;
+        Number *n = number_new(size);
+        PyLongObject *v = (PyLongObject *) obj;
+        for(int i=0;i<size;i++){
+            num x=0;
+            for(int j=0;j<NUM_SCALE;j++){
+                int z = NUM_SCALE*i+j;
+                if(z<ABS(ob_size)){
+                    x += (((num)(v->ob_digit[z]))<<(PyLong_SHIFT*j));
+                }
+            }
+            n->digits[i] = x;
+        }
+        return n;
+        #endif
     } else {
         PyErr_Format(PyExc_TypeError, "require int or long");
         return NULL;
     }
 }
+PyLongObject *pynumber_normalize(PyLongObject *v) {
+    int i = ABS(Py_SIZE(v));
+    while (i > 0 && v->ob_digit[i - 1] == 0) {
+        i--;
+    }
+    Py_SIZE(v) = (Py_SIZE(v) < 0) ? -i : i;
+    return v;
+}
 
-PyObject *PyInt_FromNumber(Number *obj) {
-    int size = ABS(obj->size);
+PyObject *PyNumber_FromNumber(Number *number) {
+    int size = ABS(number->size);
 #ifndef PY3
-    if (ABS(obj->size) * PyLong_SHIFT < 64) {
-        return PyInt_FromLong(number_as_long(obj));
+    if (ABS(number->size)<=1) {
+        return PyInt_FromLong(number_as_long(number));
     }
 #endif
+    #if NUM_SCALE == 1
     PyLongObject *v = PyObject_NEW_VAR(PyLongObject, &PyLong_Type, size);
-    Py_SIZE(v) = obj->size;
-    memcpy(v->ob_digit, obj->digits, size * sizeof(digit));
+    Py_SIZE(v) = number->size;
+    memcpy(v->ob_digit, number->digits, size * sizeof(digit));
     return (PyObject *) v;
+   #else
+    int ob_size = size*NUM_SCALE;
+    PyLongObject *v = PyObject_NEW_VAR(PyLongObject, &PyLong_Type, ob_size);
+    Py_SIZE(v) = ob_size;
+    for(int i=0;i<size;i++){
+        for(int j=0;j<NUM_SCALE;j++){
+            digit x = (digit)(number->digits[i]>>(PyLong_SHIFT*j));
+             v->ob_digit[NUM_SCALE*i+j] = x;
+        }
+    }
+    v= pynumber_normalize(v);
+    return (PyObject *)v;
+
+   #endif
 }
 
 typedef struct {
@@ -70,7 +113,7 @@ static PyObject *iter_iternext(IterObject *iter_obj) {
     if (stopped == 1) {
         return NULL;
     } else {
-        PyObject *r = PyInt_FromNumber(val);
+        PyObject *r = PyNumber_FromNumber(val);
         number_clear(val);
         return r;
     }
@@ -187,7 +230,7 @@ IntSet *get_intset_from_obj(PyObject *obj) {
                 Py_DECREF(it);
                 return intset;
             }
-            Number *x = PyInt_AsNumber(key);
+            Number *x = PyNumber_AsNumber(key);
             buffer[i] = x;
             Py_DECREF(key);
         }
@@ -277,7 +320,7 @@ static PyObject *set_add(IntSetObject *set_obj, PyObject *obj) {
         PyErr_Format(PyExc_TypeError, "%s", Py_TYPE(obj)->tp_name);
         return NULL;
     }
-    Number *x = PyInt_AsNumber(obj);
+    Number *x = PyNumber_AsNumber(obj);
     intset_add(set_obj->intset, x);
     number_clear(x);
     Py_RETURN_NONE;
@@ -289,7 +332,7 @@ static PyObject *set_remove(IntSetObject *set_obj, PyObject *obj) {
         PyErr_Format(PyExc_TypeError, "%s", Py_TYPE(obj)->tp_name);
         return NULL;
     }
-    Number *x = PyInt_AsNumber(obj);
+    Number *x = PyNumber_AsNumber(obj);
     int r = intset_remove(set_obj->intset, x);
     number_clear(x);
     if (r == 0) {
@@ -307,7 +350,7 @@ static PyObject *set_discard(IntSetObject *set_obj, PyObject *obj) {
         return NULL;
     }
 
-    Number *x = PyInt_AsNumber(obj);
+    Number *x = PyNumber_AsNumber(obj);
     intset_remove(set_obj->intset, x);
     number_clear(x);
     Py_RETURN_NONE;
@@ -324,7 +367,7 @@ static int set_contains(IntSetObject *set_obj, PyObject *obj) {
         PyErr_Format(PyExc_TypeError, "%s", Py_TYPE(obj)->tp_name);
         return -1;
     }
-    Number *x = PyInt_AsNumber(obj);
+    Number *x = PyNumber_AsNumber(obj);
     int r = intset_has(set_obj->intset, x);
     number_clear(x);
     return r;
@@ -337,7 +380,7 @@ static PyObject *set_get_item(IntSetObject *set_obj, Py_ssize_t i) {
         PyErr_Format(PyExc_KeyError, "%ld", i);
         return NULL;
     }
-    PyObject *r = PyInt_FromNumber(x);
+    PyObject *r = PyNumber_FromNumber(x);
     number_clear(x);
     return r;
 
@@ -393,7 +436,7 @@ static PyObject *set_max(IntSetObject *set_obj) {
         PyErr_Format(PyExc_ValueError, "intset is empty");
         return NULL;
     }
-    PyObject *r = PyInt_FromNumber(result);
+    PyObject *r = PyNumber_FromNumber(result);
     number_clear(result);
     return r;
 }
@@ -406,7 +449,7 @@ static PyObject *set_min(IntSetObject *set_obj) {
         PyErr_Format(PyExc_ValueError, "intset is empty");
         return NULL;
     }
-    PyObject *r = PyInt_FromNumber(result);
+    PyObject *r = PyNumber_FromNumber(result);
     number_clear(result);
     return r;
 }

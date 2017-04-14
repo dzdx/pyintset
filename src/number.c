@@ -24,20 +24,20 @@ static int small_numbers_is_fill = 0;
 Number *number_new(int size) {
     Number *n = malloc(sizeof(Number));
     n->size = size;
-    digit *ds = calloc((size_t) ABS(size), sizeof(digit));
+    num *ds = calloc((size_t) ABS(size), sizeof(num));
     n->digits = ds;
     return n;
 }
 
 
 int number_bitlen(Number *v){
-    digit d = v->digits[ABS(v->size)-1];
-    for(int i=0;i<PyLong_SHIFT;i--){
-        if((d & (1<<(PyLong_SHIFT-1 - i)))!=0){
-            return (ABS(v->size)-1)*PyLong_SHIFT - i;
+    num d = v->digits[ABS(v->size)-1];
+    for(int i=0;i<NUM_SHIFT;i--){
+        if((d & (1<<(NUM_SHIFT-1 - i)))!=0){
+            return (ABS(v->size)-1)*NUM_SHIFT - i;
         }
     }
-    return (ABS(v->size)-2)*PyLong_SHIFT;
+    return (ABS(v->size)-2)*NUM_SHIFT;
 }
 
 Number *number_normalize(Number *v) {
@@ -54,7 +54,7 @@ long number_as_long(Number *bn) {
     long r = 0;
     int size = ABS(bn->size);
     for (int i = 0; i < size; i++) {
-        r += (((long) bn->digits[i]) << (i * PyLong_SHIFT));
+        r += (((long) bn->digits[i]) << (i * NUM_SHIFT));
     }
     return (bn->size < 0) ? -r : r;
 }
@@ -65,14 +65,14 @@ Number *number_from_long(long l){
     long y = x;
     int size = 0;
     while (y > 0) {
-        y >>= PyLong_SHIFT;
+        y >>= NUM_SHIFT;
         size++;
     }
 
     Number *z = number_new(size);
     for (int i = 0; i < size; i++) {
-        z->digits[i] = (digit) (x & PyLong_MASK);
-        x >>= PyLong_SHIFT;
+        z->digits[i] = (num) (x & NUM_MASK);
+        x >>= NUM_SHIFT;
     }
     z->size = (l < 0) ? -size : size;
     return z;
@@ -91,21 +91,6 @@ Number* number_get_small(int x){
     return &small_numbers[x];
 }
 
-void number_dump(Number *x) {
-	if(x->size==0){
-		 printf("0");
-	}else{
-		if (x->size < 0) {
-			printf("-");
-		}
-	   int size = ABS(x->size);
-		for (int i = size - 1; i >= 0; i--) {
-			printf("%x", x->digits[i]);
-		}
-	}
-	printf("\n");
-}
-
 Number *x_add(Number *a, Number *b) {
     int size_a = ABS(a->size),
             size_b = ABS(b->size);
@@ -121,17 +106,17 @@ Number *x_add(Number *a, Number *b) {
     }
     Number *z = number_new(size_a + 1);
 
-    digit carry = 0;
+    num carry = 0;
     int i;
     for (i = 0; i < size_b; i++) {
         carry += a->digits[i] + b->digits[i];
-        z->digits[i] = (digit) (carry & PyLong_MASK);
-        carry >>= PyLong_SHIFT;
+        z->digits[i] = (num) (carry & NUM_MASK);
+        carry >>= NUM_SHIFT;
     }
     for (; i < size_a; i++) {
         carry += a->digits[i];
-        z->digits[i] = (digit) (carry & PyLong_MASK);
-        carry >>= PyLong_SHIFT;
+        z->digits[i] = (num) (carry & NUM_MASK);
+        carry >>= NUM_SHIFT;
     }
     z->digits[i] = carry;
     return number_normalize(z);
@@ -169,17 +154,17 @@ Number *x_sub(Number *a, Number *b) {
 
     z = number_new(size_a);
     int i;
-    digit borrow = 0;
+    num borrow = 0;
     for (i = 0; i < size_b; i++) {
         borrow = a->digits[i] - b->digits[i] - borrow;
-        z->digits[i] = (digit) (borrow & PyLong_MASK);
-        borrow >>= PyLong_SHIFT;
+        z->digits[i] = (num) (borrow & NUM_MASK);
+        borrow >>= NUM_SHIFT;
         borrow &= 1;
     }
     for (; i < size_a; i++) {
         borrow = a->digits[i] - borrow;
-        z->digits[i] = (digit) (borrow & PyLong_MASK);
-        borrow >>= PyLong_SHIFT;
+        z->digits[i] = (num) (borrow & NUM_MASK);
+        borrow >>= NUM_SHIFT;
         borrow &= 1;
     }
     if (sign < 0)
@@ -236,7 +221,7 @@ int number_cmp(Number *a, Number *b) {
         if (i < 0)
             sign = 0;
         else {
-            sign = (sdigit) a->digits[i] - (sdigit) b->digits[i];
+            sign = (snum) a->digits[i] - (snum) b->digits[i];
             if (a->size < 0)
                 sign = -sign;
         }
@@ -248,16 +233,16 @@ int number_cmp(Number *a, Number *b) {
 int number_slice(Number *in,int n){
     int idx = 0;
     for(int i=0;n>0&&i<ABS(in->size);i++){
-        digit d = in->digits[i];
+        num d = in->digits[i];
         idx += d&((1<<n)-1);
-        n -= PyLong_SHIFT;
+        n -= NUM_SHIFT;
     }
     return idx;
 }
 
 Number * number_copy(Number *a){
 	Number *r = number_new(a->size);
-	memcpy(r->digits, a->digits, sizeof(digit)*ABS(a->size));
+	memcpy(r->digits, a->digits, sizeof(num)*ABS(a->size));
 	return r;
 }
 

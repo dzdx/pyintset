@@ -46,7 +46,7 @@ class IntSetTestCase(unittest.TestCase):
         l2 = random.sample(l1, 100)
         s = IntSet(l1)
         for x in l2:
-            self.assertIn(x, s)
+            self.assertTrue(x in s)
         self.assertRaises(TypeError, lambda: "1" in s)
 
     def test_clear(self):
@@ -332,7 +332,7 @@ class IntSetTestCase(unittest.TestCase):
         self.assertRaises(KeyError, lambda:s[3000])
 
     def test_bigint(self):
-        l1 = range(1<<100, (1<<100)+100)
+        l1 = range(1<<100, (1<<100)+2)
         s = IntSet(l1)
         self.assertTrue(list(s)==list(l1))
 

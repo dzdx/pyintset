@@ -2,16 +2,25 @@
 // Created by lxd on 2017/3/9.
 //
 
-#include<Python.h>
-#include <longintrepr.h>
-
+#include <stdint.h>
 #ifndef NUMBER_H
 #define NUMBER_H
+
+#ifdef UINT64_MAX
+typedef uint64_t num;
+typedef int64_t snum;
+#define NUM_SHIFT 60
+#else
+typedef uint32_t num;
+typedef int32_t snum;
+#define NUM_SHIFT 30
+#endif
+#define NUM_MASK (((num)1<<NUM_SHIFT)-1)
 
 
 typedef struct {
     int size;
-    digit *digits;
+    num *digits;
 } Number;
 
 
