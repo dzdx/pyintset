@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from setuptools import setup, Extension, find_packages
+import os
+from setuptools import setup, Extension
 
 with open('README.rst') as readme_file:
     readme = readme_file.read()
@@ -17,14 +18,13 @@ extension = Extension('intset',
 
 setup(
     name='pyintset',
-    version='0.1.1',
+    version='0.1.3',
     long_description=readme + '\n\n' + history,
     author="dzdx",
     author_email='dzidaxie@gmail.com',
     url='https://github.com/dzdx/pyintset',
     include_package_data=True,
     license="MIT license",
-    packages=find_packages(),
     platforms=["any"],
     zip_safe=False,
     keywords='intset',
