@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from setuptools import setup, Extension
+from setuptools import setup, Extension, find_packages
 
 with open('README.rst') as readme_file:
     readme = readme_file.read()
@@ -11,18 +11,21 @@ with open('HISTORY.rst') as history_file:
 
 extension = Extension('intset',
     sources=['./src/intsetobject.c', './src/intset.c', "./src/number.c"],
+    include_dirs=['./src'],
     extra_compile_args=['-std=c99']
 )
 
 setup(
     name='pyintset',
-    version='0.1.0',
+    version='0.1.1',
     long_description=readme + '\n\n' + history,
     author="dzdx",
     author_email='dzidaxie@gmail.com',
     url='https://github.com/dzdx/pyintset',
     include_package_data=True,
     license="MIT license",
+    packages=find_packages(),
+    platforms=["any"],
     zip_safe=False,
     keywords='intset',
     ext_modules=[extension],

@@ -74,7 +74,7 @@ Test machine:
 Linux 3.2.0-23-generic x86_64 #36-Ubuntu SMP Tue Apr 10 20:39:51 UTC 2012
 
 Python Versions:
-^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^
 CPython 2.7.12 (default, Jul 18 2016, 14:59:49) [GCC 4.6.3]
 
 ======================================== ======================================== ========================================
@@ -90,6 +90,8 @@ benchmark_symmetric_difference           0.0477960109711                        
 benchmark_union                          0.0476861000061                          2.07998609543
 benchmark_update                         0.622309923172                           0.059406042099
 ======================================== ======================================== ========================================
+
+
 memory profile
 ---------------
 
@@ -164,7 +166,7 @@ len(s)                                                     Return the num of mem
 s[2]                                                       Return an integer by index
 s[1:10]                                                    Return a slice intset  by range
 iter(s)                                                    Iter this intset, return member is it one by one
-s (<|<=|==|>|>=) <IntSet>                                  <= is similar to issubset, >= is similar to issuperset
+s (`<|<=|==|>|>=`) <IntSet>                                  <= is similar to issubset, >= is similar to issuperset
 ==============================================            =========
 
 
@@ -175,4 +177,3 @@ This package was created with Cookiecutter_ and the `audreyr/cookiecutter-pypack
 
 .. _Cookiecutter: https://github.com/audreyr/cookiecutter
 .. _`audreyr/cookiecutter-pypackage`: https://github.com/audreyr/cookiecutter-pypackage
-
