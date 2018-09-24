@@ -347,10 +347,18 @@ Number *intsetiter_next(IntSetIter *iter, int *stopped) {
 
 
 Number *intset_max(IntSet *set, int *error) {
+    if(set->root==NULL||set->root->prev==NULL){
+        error = 1;
+        return 0;
+    }
     return block_max(set->root->prev, error);
 }
 
 Number *intset_min(IntSet *set, int *error) {
+    if(set->root==NULL||set->root->prev==NULL){
+        error = 1;
+        return 0;
+    }
     return block_min(set->root->next, error);
 }
 

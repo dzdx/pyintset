@@ -62,11 +62,13 @@ class IntSetTestCase(unittest.TestCase):
         l1 = random.sample(range(10000), 2000)
         s = IntSet(l1)
         self.assertEqual(s.min(), min(l1))
+        self.assertRaises(ValueError, lambda: IntSet().min())
 
     def test_max(self):
         l1 = random.sample(range(10000), 2000)
         s = IntSet(l1)
         self.assertEqual(s.max(), max(l1))
+        self.assertRaises(ValueError, lambda: IntSet().max())
 
     def test_and(self):
 
