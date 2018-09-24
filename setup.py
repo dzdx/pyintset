@@ -18,7 +18,7 @@ extension = Extension('intset',
 
 setup(
     name='pyintset',
-    version='0.1.3',
+    version='0.1.4',
     long_description=readme + '\n\n' + history,
     author="dzdx",
     author_email='dzidaxie@gmail.com',
