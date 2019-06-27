@@ -77,3 +77,10 @@ dist: clean ## builds source and wheel package
 
 install: clean ## install the package to the active Python's site-packages
 	python setup.py install
+
+
+number_test:
+	gcc -c src/number.c -o cbuild/number.o
+	gcc -c src/number_test.c -o cbuild/number_test.o
+	gcc cbuild/number.o cbuild/number_test.o -o cbuild/number_test.out
+	./cbuild/number_test.out
