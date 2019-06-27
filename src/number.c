@@ -211,9 +211,9 @@ Number *number_sub(Number *a, Number *b) {
 
 
 int number_cmp(Number *a, Number *b) {
-    int sign;
+    snum sign;
     if (a->size != b->size) {
-        sign = a->size - b->size;
+        sign = (snum)(a->size - b->size);
     } else {
         int i = ABS(a->size);
 

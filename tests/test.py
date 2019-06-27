@@ -338,6 +338,9 @@ class IntSetTestCase(unittest.TestCase):
         s = IntSet(l1)
         self.assertTrue(list(s)==list(l1))
 
+        l1 = IntSet([1<<x for x in range(50)])
+        self.assertTrue(len(l1)== 50)
+
 
 
 if __name__ == '__main__':
